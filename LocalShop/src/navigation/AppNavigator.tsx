@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { apiService } from '../services/api';
-import { User } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 // Screens
 import { HomeScreen } from '../screens/HomeScreen';
@@ -13,11 +12,9 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { ShopOwnerDashboard } from '../screens/ShopOwnerDashboard';
 import { CreateShopScreen } from '../screens/CreateShopScreen';
 import { CreateProductScreen } from '../screens/CreateProductScreen';
-
-// Placeholder screens (to be created)
-const MyShopsScreen = () => null;
-const ProfileScreen = () => null;
-const CustomerDashboard = () => null;
+import { MyShopsScreen } from '../screens/MyShopsScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
+import { CustomerDashboard } from '../screens/CustomerDashboard';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -151,27 +148,7 @@ const ShopOwnerTabNavigator = () => {
 };
 
 export const AppNavigator: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    checkAuthentication();
-  }, []);
-
-  const checkAuthentication = async () => {
-    try {
-      if (apiService.isAuthenticated()) {
-        const userData = await apiService.getCurrentUser();
-        setUser(userData);
-        setIsAuthenticated(true);
-      }
-    } catch (error) {
-      console.log('User not authenticated');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return null; // You can add a loading screen here

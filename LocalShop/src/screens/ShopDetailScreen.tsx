@@ -32,8 +32,14 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
       price: 3.99,
       description: 'Locally grown organic tomatoes',
       category: 'Vegetables',
-      shopId: shop.id,
-      inStock: true,
+      shop: shop.id?.toString() || '1',
+      inventory: {
+        quantity: 50,
+        unit: 'pieces',
+        lowStockThreshold: 10,
+        isUnlimited: false
+      },
+      isAvailable: true,
     },
     {
       id: 2,
@@ -41,8 +47,14 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
       price: 2.99,
       description: 'Fresh mixed salad greens',
       category: 'Vegetables',
-      shopId: shop.id,
-      inStock: true,
+      shop: shop.id?.toString() || '1',
+      inventory: {
+        quantity: 30,
+        unit: 'bags',
+        lowStockThreshold: 8,
+        isUnlimited: false
+      },
+      isAvailable: true,
     },
     {
       id: 3,
@@ -50,8 +62,14 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
       price: 1.99,
       description: 'Sweet organic carrots',
       category: 'Vegetables',
-      shopId: shop.id,
-      inStock: true,
+      shop: shop.id?.toString() || '1',
+      inventory: {
+        quantity: 40,
+        unit: 'pieces',
+        lowStockThreshold: 12,
+        isUnlimited: false
+      },
+      isAvailable: true,
     },
   ];
 
@@ -92,7 +110,7 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
           <View style={styles.shopInfo}>
             <View style={styles.shopHeader}>
               <Text style={styles.shopName}>{shop.name}</Text>
-              <Text style={styles.shopRating}>★ {shop.rating}</Text>
+              <Text style={styles.shopRating}>★ {shop.rating?.average || 0}</Text>
             </View>
             <Text style={styles.shopCategory}>{shop.category}</Text>
             <Text style={styles.shopDescription}>{shop.description}</Text>
@@ -121,11 +139,11 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
               <View style={styles.ownerInfo}>
                 <View style={styles.ownerAvatar}>
                   <Text style={styles.ownerAvatarText}>
-                    {shop.owner.name.charAt(0)}
+                    {shop.owner.firstName.charAt(0)}
                   </Text>
                 </View>
                 <View style={styles.ownerDetails}>
-                  <Text style={styles.ownerName}>{shop.owner.name}</Text>
+                  <Text style={styles.ownerName}>{shop.owner.firstName} {shop.owner.lastName}</Text>
                   <Text style={styles.ownerLabel}>Shop Owner</Text>
                 </View>
               </View>

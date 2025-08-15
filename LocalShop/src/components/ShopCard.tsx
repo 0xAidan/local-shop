@@ -1,14 +1,10 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { Shop } from '../types';
+
 interface ShopCardProps {
-  shop: {
-    id: number;
-    name: string;
-    rating: number;
-    distance?: string;
-    category?: string;
-  };
+  shop: Shop;
   onPress?: () => void;
 }
 
@@ -22,7 +18,7 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, onPress }) => {
         )}
       </View>
       <View style={styles.shopMeta}>
-        <Text style={styles.shopRating}>★ {shop.rating}</Text>
+        <Text style={styles.shopRating}>★ {shop.rating?.average || 0}</Text>
         {shop.distance && (
           <Text style={styles.shopDistance}>{shop.distance}</Text>
         )}

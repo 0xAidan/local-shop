@@ -11,7 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { apiService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 
 export const LoginScreen: React.FC = () => {
@@ -24,9 +24,11 @@ export const LoginScreen: React.FC = () => {
     firstName: '',
     lastName: '',
     phone: '',
+    role: 'customer' as 'customer' | 'shop_owner',
   });
 
   const navigation = useNavigation();
+  const { login, register } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -36,12 +38,8 @@ export const LoginScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await apiService.login(email, password);
-      // Navigate to main app
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Home' as never }],
-      });
+      await login(email, password);
+      // Navigation will be handled automatically by the AppNavigator
     } catch (error) {
       Alert.alert('Login Failed', error instanceof Error ? error.message : 'An error occurred');
     } finally {
@@ -57,15 +55,13 @@ export const LoginScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await apiService.register({
+      await register({
         ...registerData,
         email,
         password,
-        role: 'customer',
+        role: registerData.role || 'customer',
       });
-      Alert.alert('Success', 'Account created successfully!', [
-        { text: 'OK', onPress: () => setIsRegistering(false) }
-      ]);
+      // Navigation will be handled automatically by the AppNavigator
     } catch (error) {
       Alert.alert('Registration Failed', error instanceof Error ? error.message : 'An error occurred');
     } finally {

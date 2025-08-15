@@ -9,13 +9,26 @@ import {
   ProductFormData 
 } from '../types';
 
+// Use mock API for testing (set to false to use real backend)
+const USE_MOCK_API = true;
 const API_BASE_URL = 'http://localhost:3001/api';
+
+// Import mock service
+import { mockApiService } from './mockApi';
 
 class ApiService {
   private token: string | null = null;
 
   constructor() {
     this.loadToken();
+  }
+
+  // If using mock API, return mockApiService
+  private getApiService() {
+    if (USE_MOCK_API) {
+      return mockApiService;
+    }
+    return this;
   }
 
   private async loadToken() {
@@ -69,6 +82,10 @@ class ApiService {
 
   // Authentication
   async login(email: string, password: string): Promise<AuthResponse> {
+    if (USE_MOCK_API) {
+      return this.getApiService().login(email, password);
+    }
+
     const response = await this.request<{ user: User; token: string }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
@@ -89,6 +106,10 @@ class ApiService {
     phone?: string;
     role?: 'customer' | 'shop_owner';
   }): Promise<AuthResponse> {
+    if (USE_MOCK_API) {
+      return this.getApiService().register(userData);
+    }
+
     const response = await this.request<{ user: User; token: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
@@ -106,6 +127,10 @@ class ApiService {
   }
 
   async getCurrentUser(): Promise<User> {
+    if (USE_MOCK_API) {
+      return this.getApiService().getCurrentUser();
+    }
+
     const response = await this.request<User>('/auth/me');
     return response.data;
   }
@@ -159,6 +184,10 @@ class ApiService {
   }
 
   async createShop(shopData: ShopFormData): Promise<Shop> {
+    if (USE_MOCK_API) {
+      return this.getApiService().createShop(shopData);
+    }
+
     const response = await this.request<Shop>('/shops', {
       method: 'POST',
       body: JSON.stringify(shopData),
@@ -181,6 +210,10 @@ class ApiService {
   }
 
   async getUserShops(): Promise<Shop[]> {
+    if (USE_MOCK_API) {
+      return this.getApiService().getUserShops();
+    }
+
     const response = await this.request<Shop[]>('/users/shops');
     return response.data;
   }
@@ -220,6 +253,10 @@ class ApiService {
   }
 
   async createProduct(productData: ProductFormData): Promise<Product> {
+    if (USE_MOCK_API) {
+      return this.getApiService().createProduct(productData);
+    }
+
     const response = await this.request<Product>('/products', {
       method: 'POST',
       body: JSON.stringify(productData),
@@ -323,7 +360,7 @@ class ApiService {
     } as any);
 
     const headers = await this.getHeaders();
-    delete headers['Content-Type']; // Let the browser set the content type for FormData
+    delete (headers as any)['Content-Type']; // Let the browser set the content type for FormData
 
     const response = await fetch(`${API_BASE_URL}/upload/${type}`, {
       method: 'POST',
@@ -358,7 +395,7 @@ class ApiService {
     });
 
     const headers = await this.getHeaders();
-    delete headers['Content-Type'];
+    delete (headers as any)['Content-Type'];
 
     const response = await fetch(`${API_BASE_URL}/upload/images`, {
       method: 'POST',
@@ -389,6 +426,9 @@ class ApiService {
 
   // Check if user is authenticated
   isAuthenticated(): boolean {
+    if (USE_MOCK_API) {
+      return this.getApiService().isAuthenticated();
+    }
     return !!this.token;
   }
 

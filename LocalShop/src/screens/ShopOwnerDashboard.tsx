@@ -195,7 +195,7 @@ export const ShopOwnerDashboard: React.FC = () => {
                 <TouchableOpacity
                   key={shop._id}
                   style={styles.shopCard}
-                  onPress={() => navigation.navigate('ShopDetail' as never, { shop } as never)}
+                  onPress={() => navigation.navigate('ShopDetail', { shop })}
                 >
                   <View style={styles.shopCardHeader}>
                     <Text style={styles.shopName} numberOfLines={1}>
