@@ -1,121 +1,234 @@
-# LocalShop - Local Marketplace App
+# 🏪 Local Shop - Complete Mobile App
 
-A React Native app that connects local sellers with nearby customers, inspired by Gametime and the Shop app. Sellers can create their own shops and sell products locally, while buyers can discover and purchase from shops in their area.
+A comprehensive React Native app that allows both customers to discover local shops and shop owners to manage their businesses - all in one unified mobile experience!
 
-## Features
+## ✨ Features
 
-- **Dark Theme UI** - Modern, sleek interface with dark colors
-- **Location-Based Discovery** - Only shows shops within your local area
-- **Shop Categories** - Organized browsing by trending, recommendations, and categories
-- **Pickup-Only Model** - No shipping, local pickup only
-- **Seller Shops** - Individual sellers can create branded shop pages
+### For Customers:
+- **Discover Local Shops**: Browse shops by category, location, and features
+- **Shop Details**: View shop information, hours, contact details, and products
+- **Product Browsing**: See detailed product information, pricing, and availability
+- **Favorites**: Save your favorite shops for quick access
+- **User Profiles**: Manage your preferences and account settings
 
-## Project Structure
+### For Shop Owners:
+- **Complete Shop Management**: Create and manage multiple shops
+- **Product Management**: Add, edit, and manage inventory for all products
+- **Dashboard**: View statistics and manage your business
+- **Rich Product Details**: Add dietary information, allergens, origin, and more
+- **Inventory Tracking**: Monitor stock levels and set alerts
+- **Business Hours**: Set detailed operating hours for each day
+
+## 🏗️ Architecture
+
+### Frontend (React Native/Expo)
+- **Authentication System**: Login/registration with role-based access
+- **Navigation**: Separate flows for customers and shop owners
+- **API Integration**: Full backend communication
+- **Form Management**: Comprehensive forms with validation
+- **UI/UX**: Beautiful, modern interface with gradients and animations
+
+### Backend (Node.js/Express)
+- **RESTful API**: Complete CRUD operations for all entities
+- **Authentication**: JWT-based authentication with role management
+- **Database**: MongoDB with Mongoose ODM
+- **Image Upload**: Cloudinary integration for media management
+- **Geocoding**: Google Maps integration for location services
+- **Security**: Input validation, rate limiting, and security headers
+
+## 📱 App Structure
 
 ```
 LocalShop/
 ├── src/
 │   ├── components/          # Reusable UI components
-│   │   └── ShopCard.tsx     # Shop display card component
-│   ├── screens/             # App screens (to be added)
-│   ├── navigation/          # Navigation setup (to be added)
-│   ├── services/            # Data and API services
-│   │   └── mockData.ts      # Mock data for development
-│   └── types/               # TypeScript type definitions
-│       └── index.ts         # App data types
-├── App.tsx                  # Main app component
-└── package.json             # Dependencies and scripts
+│   ├── navigation/          # Navigation configuration
+│   ├── screens/            # App screens
+│   │   ├── LoginScreen.tsx           # Authentication
+│   │   ├── ShopOwnerDashboard.tsx    # Shop owner main dashboard
+│   │   ├── CreateShopScreen.tsx      # Shop creation form
+│   │   ├── CreateProductScreen.tsx   # Product creation form
+│   │   ├── HomeScreen.tsx            # Customer home screen
+│   │   └── ShopDetailScreen.tsx      # Shop details view
+│   ├── services/           # API and business logic
+│   │   └── api.ts                    # Complete API service
+│   └── types/              # TypeScript type definitions
+└── backend/                # Backend API (separate directory)
 ```
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
+- Node.js (v14 or higher)
+- MongoDB (local or cloud)
+- Expo CLI
+- Google Maps API key
+- Cloudinary account
 
-- Node.js (v16 or higher)
-- npm or yarn
-- Expo CLI (optional but recommended)
-- iOS Simulator (for iOS development) or Android Emulator
+### 1. Set up the Backend
+```bash
+cd backend
+npm install
+cp .env.example .env
+# Edit .env with your API keys
+npm run dev
+```
 
-### Installation
+### 2. Set up the Mobile App
+```bash
+cd LocalShop
+npm install
+# Update API_BASE_URL in src/services/api.ts if needed
+npm start
+```
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+### 3. Environment Variables
+Create a `.env` file in the backend directory:
+```env
+PORT=3001
+NODE_ENV=development
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+CLOUDINARY_CLOUD_NAME=your_cloudinary_name
+CLOUDINARY_API_KEY=your_cloudinary_key
+CLOUDINARY_API_SECRET=your_cloudinary_secret
+GOOGLE_MAPS_API_KEY=your_google_maps_key
+```
 
-2. **Start the development server:**
-   ```bash
-   npm start
-   ```
+## 🎯 User Flows
 
-3. **Run on iOS:**
-   ```bash
-   npm run ios
-   ```
+### Customer Flow:
+1. **Register/Login** → Create account or sign in
+2. **Browse Shops** → Discover local businesses
+3. **View Shop Details** → See products, hours, location
+4. **Add to Favorites** → Save shops for later
+5. **Manage Profile** → Update preferences and settings
 
-4. **Run on Android:**
-   ```bash
-   npm run android
-   ```
+### Shop Owner Flow:
+1. **Register as Shop Owner** → Create business account
+2. **Create Shop** → Add shop details, location, hours
+3. **Add Products** → Create product catalog with details
+4. **Manage Inventory** → Track stock levels and availability
+5. **View Dashboard** → Monitor business performance
 
-5. **Run on Web (for testing):**
-   ```bash
-   npm run web
-   ```
+## 🔧 Key Features
 
-## Current Features
+### Authentication & Authorization
+- JWT-based authentication
+- Role-based access control (customer/shop_owner/admin)
+- Secure password hashing
+- Token management
 
-### Main Screen
-- **Location Header** - Shows current city (Thunder Bay)
-- **User Profile** - Username and avatar placeholder
-- **Shop Categories** - Organized sections:
-  - Trending shops
-  - Personalized recommendations
-  - Meat & Produce
-  - Goods (handmade items)
+### Shop Management
+- Complete shop profiles with location, hours, contact info
+- Multiple shops per owner
+- Shop categories and features
+- Image upload support
 
-### Shop Cards
-- Shop name and category
-- Star rating display
-- Distance from user
-- Touchable for future navigation
+### Product Management
+- Rich product details (name, description, pricing)
+- Inventory tracking with low stock alerts
+- Dietary information and allergens
+- Product categories and tags
+- Origin and local sourcing info
 
-## Mock Data
+### Location Services
+- Address geocoding to coordinates
+- Distance calculations
+- Location-based shop discovery
 
-The app currently uses mock data to simulate:
-- 8 different local shops
-- Various categories (Produce, Bakery, Handmade, etc.)
-- Shop ratings and distances
-- User information
+### Image Management
+- Cloudinary integration
+- Multiple image upload
+- Image optimization and storage
 
-## Next Steps
+## 📊 Database Schema
 
-1. **Add Navigation** - Set up React Navigation for multiple screens
-2. **Shop Detail Screen** - Individual shop pages with products
-3. **Product Browsing** - View and search products within shops
-4. **User Authentication** - Login/signup functionality
-5. **Location Services** - Real GPS location detection
-6. **Backend Integration** - Replace mock data with real API calls
+### Users
+- Authentication info (email, password)
+- Profile data (name, phone, avatar)
+- Role-based permissions
+- Preferences and settings
 
-## Tech Stack
+### Shops
+- Basic info (name, description, category)
+- Location (address, coordinates, city/state/zip)
+- Contact information
+- Business hours
+- Features and tags
+- Owner relationship
 
-- **React Native** - Cross-platform mobile development
-- **Expo** - Development platform and tools
-- **TypeScript** - Type-safe JavaScript
-- **React Navigation** - Screen navigation (to be added)
-- **Expo Linear Gradient** - UI styling effects
+### Products
+- Basic info (name, description, category)
+- Pricing (current price, original price)
+- Inventory (quantity, unit, thresholds)
+- Dietary information
+- Allergens and origin
+- Shop relationship
 
-## Development Notes
+## 🔒 Security Features
 
-- The app uses a dark theme throughout
-- All shop cards are currently placeholder data
-- Location is hardcoded to "Thunder Bay" for now
-- No backend integration yet - all data is mock
+- Input validation and sanitization
+- Rate limiting
+- CORS configuration
+- Security headers (Helmet)
+- Password hashing (bcrypt)
+- JWT token management
+- Role-based access control
 
-## Contributing
+## 🎨 UI/UX Features
 
-This is a learning project. Feel free to experiment and add features!
+- **Modern Design**: Clean, intuitive interface
+- **Gradient Backgrounds**: Beautiful visual appeal
+- **Responsive Forms**: Comprehensive input validation
+- **Loading States**: User feedback during operations
+- **Error Handling**: Clear error messages
+- **Navigation**: Smooth transitions between screens
 
-## License
+## 🚀 Deployment
 
-This project is for educational purposes. 
+### Backend Deployment
+- Deploy to Heroku, Railway, or any Node.js hosting
+- Set up MongoDB Atlas for database
+- Configure environment variables
+- Set up domain and SSL
+
+### Mobile App Deployment
+- Build with Expo EAS Build
+- Deploy to App Store and Google Play
+- Configure app signing
+- Set up push notifications
+
+## 🔮 Future Enhancements
+
+- **Real-time Notifications**: Push notifications for orders and updates
+- **Payment Integration**: Stripe/PayPal for transactions
+- **Order Management**: Complete order lifecycle
+- **Reviews & Ratings**: Customer feedback system
+- **Analytics Dashboard**: Business insights and reports
+- **Multi-language Support**: Internationalization
+- **Offline Support**: Offline-first architecture
+- **Social Features**: Sharing and social integration
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🆘 Support
+
+For support and questions:
+- Check the documentation
+- Review the code comments
+- Open an issue on GitHub
+
+---
+
+**Built with ❤️ for local businesses and communities** 

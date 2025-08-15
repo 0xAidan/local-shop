@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Shop - Shop Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .main-content {
+            background-color: #f8f9fa;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+        .map-container {
+            height: 300px;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .product-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .status-badge {
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-0">
+                <div class="p-4 text-white">
+                    <h4><i class="fas fa-store me-2"></i>Shop Dashboard</h4>
+                    <hr class="text-white">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link text-white active" href="#" onclick="showSection('overview')">
+                                <i class="fas fa-chart-line me-2"></i>Overview
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="#" onclick="showSection('shops')">
+                                <i class="fas fa-store me-2"></i>My Shops
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="#" onclick="showSection('products')">
+                                <i class="fas fa-box me-2"></i>Products
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="#" onclick="showSection('orders')">
+                                <i class="fas fa-shopping-cart me-2"></i>Orders
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="#" onclick="showSection('profile')">
+                                <i class="fas fa-user me-2"></i>Profile
+                            </a>
+                        </li>
+                        <li class="nav-item mt-3">
+                            <a class="nav-link text-white" href="#" onclick="logout()">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content p-4">
+                <!-- Overview Section -->
+                <div id="overview-section">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h2>Dashboard Overview</h2>
+                            <p class="text-muted">Welcome back! Here's what's happening with your shops.</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card text-center p-3">
+                                <i class="fas fa-store fa-2x text-primary mb-2"></i>
+                                <h4 id="total-shops">0</h4>
+                                <p class="text-muted">Total Shops</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-3">
+                                <i class="fas fa-box fa-2x text-success mb-2"></i>
+                                <h4 id="total-products">0</h4>
+                                <p class="text-muted">Total Products</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-3">
+                                <i class="fas fa-star fa-2x text-warning mb-2"></i>
+                                <h4 id="avg-rating">0.0</h4>
+                                <p class="text-muted">Avg Rating</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-3">
+                                <i class="fas fa-dollar-sign fa-2x text-info mb-2"></i>
+                                <h4 id="total-revenue">$0</h4>
+                                <p class="text-muted">Total Revenue</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Recent Activity</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="recent-activity">
+                                        <p class="text-muted">No recent activity</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Quick Actions</h5>
+                                </div>
+                                <div class="card-body">
+                                    <button class="btn btn-primary w-100 mb-2" onclick="showSection('shops')">
+                                        <i class="fas fa-plus me-2"></i>Add New Shop
+                                    </button>
+                                    <button class="btn btn-outline-primary w-100 mb-2" onclick="showSection('products')">
+                                        <i class="fas fa-plus me-2"></i>Add Product
+                                    </button>
+                                    <button class="btn btn-outline-primary w-100" onclick="showSection('profile')">
+                                        <i class="fas fa-edit me-2"></i>Edit Profile
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shops Section -->
+                <div id="shops-section" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
+                            <h2>My Shops</h2>
+                            <button class="btn btn-primary" onclick="showAddShopModal()">
+                                <i class="fas fa-plus me-2"></i>Add New Shop
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row" id="shops-list">
+                        <!-- Shops will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Products Section -->
+                <div id="products-section" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-12 d-flex justify-content-between align-items-center">
+                            <h2>Products</h2>
+                            <button class="btn btn-primary" onclick="showAddProductModal()">
+                                <i class="fas fa-plus me-2"></i>Add New Product
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Image</th>
+                                            <th>Name</th>
+                                            <th>Category</th>
+                                            <th>Price</th>
+                                            <th>Stock</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="products-table">
+                                        <!-- Products will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Orders Section -->
+                <div id="orders-section" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h2>Orders</h2>
+                            <p class="text-muted">Order management coming soon...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Section -->
+                <div id="profile-section" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h2>Profile Settings</h2>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Personal Information</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="profile-form">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">First Name</label>
+                                                <input type="text" class="form-control" id="profile-firstname">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Last Name</label>
+                                                <input type="text" class="form-control" id="profile-lastname">
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="profile-email" readonly>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Phone</label>
+                                            <input type="tel" class="form-control" id="profile-phone">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Change Password</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="password-form">
+                                        <div class="mb-3">
+                                            <label class="form-label">Current Password</label>
+                                            <input type="password" class="form-control" id="current-password">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">New Password</label>
+                                            <input type="password" class="form-control" id="new-password">
+                                        </div>
+                                        <button type="submit" class="btn btn-warning">Change Password</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Shop Modal -->
+    <div class="modal fade" id="addShopModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Shop</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-shop-form">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Shop Name *</label>
+                                <input type="text" class="form-control" id="shop-name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Category *</label>
+                                <select class="form-select" id="shop-category" required>
+                                    <option value="">Select Category</option>
+                                    <option value="Grocery">Grocery</option>
+                                    <option value="Restaurant">Restaurant</option>
+                                    <option value="Bakery">Bakery</option>
+                                    <option value="Butcher">Butcher</option>
+                                    <option value="Fish Market">Fish Market</option>
+                                    <option value="Farmers Market">Farmers Market</option>
+                                    <option value="Convenience Store">Convenience Store</option>
+                                    <option value="Specialty Food">Specialty Food</option>
+                                    <option value="Beverages">Beverages</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="shop-description" rows="3"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <label class="form-label">Address *</label>
+                                <input type="text" class="form-control" id="shop-address" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">City *</label>
+                                <input type="text" class="form-control" id="shop-city" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">State *</label>
+                                <input type="text" class="form-control" id="shop-state" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">ZIP Code *</label>
+                                <input type="text" class="form-control" id="shop-zipcode" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="shop-phone">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="shop-email">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Features</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Delivery" id="feature-delivery">
+                                        <label class="form-check-label" for="feature-delivery">Delivery</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Pickup" id="feature-pickup">
+                                        <label class="form-check-label" for="feature-pickup">Pickup</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Organic" id="feature-organic">
+                                        <label class="form-check-label" for="feature-organic">Organic</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Local" id="feature-local">
+                                        <label class="form-check-label" for="feature-local">Local</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Gluten-Free" id="feature-gluten">
+                                        <label class="form-check-label" for="feature-gluten">Gluten-Free</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Vegan" id="feature-vegan">
+                                        <label class="form-check-label" for="feature-vegan">Vegan</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="createShop()">Create Shop</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div class="modal fade" id="addProductModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-product-form">
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">Product Name *</label>
+                                <input type="text" class="form-control" id="product-name" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Price *</label>
+                                <input type="number" class="form-control" id="product-price" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="product-description" rows="3"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Category *</label>
+                                <input type="text" class="form-control" id="product-category" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Shop *</label>
+                                <select class="form-select" id="product-shop" required>
+                                    <option value="">Select Shop</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Quantity</label>
+                                <input type="number" class="form-control" id="product-quantity" min="0" value="0">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Unit</label>
+                                <select class="form-select" id="product-unit">
+                                    <option value="piece">Piece</option>
+                                    <option value="kg">Kilogram</option>
+                                    <option value="lb">Pound</option>
+                                    <option value="g">Gram</option>
+                                    <option value="oz">Ounce</option>
+                                    <option value="liter">Liter</option>
+                                    <option value="gallon">Gallon</option>
+                                    <option value="dozen">Dozen</option>
+                                    <option value="bunch">Bunch</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Low Stock Alert</label>
+                                <input type="number" class="form-control" id="product-lowstock" min="0" value="5">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Dietary Information</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="dietary-organic">
+                                        <label class="form-check-label" for="dietary-organic">Organic</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="dietary-vegan">
+                                        <label class="form-check-label" for="dietary-vegan">Vegan</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="dietary-gluten">
+                                        <label class="form-check-label" for="dietary-gluten">Gluten-Free</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="dietary-vegetarian">
+                                        <label class="form-check-label" for="dietary-vegetarian">Vegetarian</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="dietary-halal">
+                                        <label class="form-check-label" for="dietary-halal">Halal</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="dietary-kosher">
+                                        <label class="form-check-label" for="dietary-kosher">Kosher</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="createProduct()">Create Product</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html> 
