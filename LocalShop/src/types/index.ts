@@ -62,10 +62,11 @@ export interface Product {
   description?: string;
   price: number;
   originalPrice?: number;
-  currency?: string;
+  currency?: string; // Default: CAD
   category: string;
   subcategory?: string;
   shop: string;
+  productType?: 'stock' | 'unique' | 'service'; // New field for product types
   images?: Array<{
     url: string;
     caption?: string;
@@ -219,12 +220,29 @@ export interface Order {
     productId: string;
     quantity: number;
     price: number;
+    productType?: 'stock' | 'unique' | 'service';
   }>;
+  subtotal: number;
+  tax: number;
   total: number;
-  status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled' | 'refunded';
+  paymentStatus: 'pending' | 'paid' | 'refunded' | 'partially_refunded';
   pickupLocation: string;
   pickupTime: string;
+  
+  // Financial tracking
+  financials: {
+    platformFee: number;
+    netAmount: number; // Amount shop receives
+    currency: string;
+  };
+  
+  // Return eligibility
+  returnEligible: boolean;
+  returnWindow: number; // days
+  
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface AuthResponse {

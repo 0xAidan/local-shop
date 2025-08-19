@@ -27,8 +27,8 @@ const productSchema = new mongoose.Schema({
   
   currency: {
     type: String,
-    default: 'USD',
-    enum: ['USD', 'EUR', 'GBP', 'CAD']
+    default: 'CAD',
+    enum: ['CAD', 'USD', 'EUR', 'GBP']
   },
   
   category: {
@@ -61,6 +61,13 @@ const productSchema = new mongoose.Schema({
     altText: String
   }],
   
+  // Product type - determines inventory behavior
+  productType: {
+    type: String,
+    enum: ['stock', 'unique', 'service'],
+    default: 'stock'
+  },
+  
   inventory: {
     quantity: {
       type: Number,
@@ -70,13 +77,18 @@ const productSchema = new mongoose.Schema({
     unit: {
       type: String,
       default: 'piece',
-      enum: ['piece', 'kg', 'lb', 'g', 'oz', 'liter', 'gallon', 'dozen', 'bunch']
+      enum: ['piece', 'kg', 'lb', 'g', 'oz', 'liter', 'gallon', 'dozen', 'bunch', 'item']
     },
     lowStockThreshold: {
       type: Number,
       default: 5
     },
     isUnlimited: {
+      type: Boolean,
+      default: false
+    },
+    // For unique items (art, crafts, etc.)
+    isOneOfAKind: {
       type: Boolean,
       default: false
     }
