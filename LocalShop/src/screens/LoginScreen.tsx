@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import { ConnectivityTest } from '../services/connectivityTest';
 
 export const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -64,6 +65,25 @@ export const LoginScreen: React.FC = () => {
       // Navigation will be handled automatically by the AppNavigator
     } catch (error) {
       Alert.alert('Registration Failed', error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setIsLoading(true);
+    try {
+      const result = await ConnectivityTest.testAPI();
+      if (result.success) {
+        Alert.alert('✅ Connection Test', result.message);
+      } else {
+        Alert.alert('❌ Connection Test Failed', result.message, [
+          { text: 'OK' },
+          { text: 'View Details', onPress: () => Alert.alert('Details', JSON.stringify(result.details, null, 2)) }
+        ]);
+      }
+    } catch (error) {
+      Alert.alert('❌ Test Error', error instanceof Error ? error.message : 'Unknown error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -179,6 +199,16 @@ export const LoginScreen: React.FC = () => {
                   </Text>
                 </TouchableOpacity>
               )}
+
+              <TouchableOpacity
+                style={styles.testButton}
+                onPress={handleTestConnection}
+                disabled={isLoading}
+              >
+                <Text style={styles.testButtonText}>
+                  🧪 Test API Connection
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
@@ -278,5 +308,16 @@ const styles = StyleSheet.create({
     color: '#764ba2',
     fontSize: 14,
     fontWeight: '600',
+  },
+  testButton: {
+    alignItems: 'center',
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+  },
+  testButtonText: {
+    color: '#666',
+    fontSize: 12,
   },
 }); 

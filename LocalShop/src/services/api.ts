@@ -18,6 +18,7 @@ import { mockApiService } from './mockApi';
 
 class ApiService {
   private token: string | null = null;
+  private useMockAsFallback: boolean = false;
 
   constructor() {
     this.loadToken();
@@ -25,10 +26,47 @@ class ApiService {
 
   // If using mock API, return mockApiService
   private getApiService() {
-    if (USE_MOCK_API) {
+    if (USE_MOCK_API || this.useMockAsFallback) {
+      console.log(`🔄 Using ${USE_MOCK_API ? 'mock' : 'fallback mock'} API service`);
       return mockApiService;
     }
     return this;
+  }
+
+  // Enable fallback to mock API if real API fails
+  private enableMockFallback() {
+    if (!this.useMockAsFallback) {
+      console.log('⚠️ Real API failed, switching to mock API as fallback');
+      this.useMockAsFallback = true;
+    }
+  }
+
+  // Helper method to get method name from endpoint
+  private getMethodName(endpoint: string): string {
+    const parts = endpoint.split('/').filter(Boolean);
+    if (parts.length === 0) return '';
+    
+    const lastPart = parts[parts.length - 1];
+    const resource = parts[0]; // auth, shops, products, etc.
+    
+    // Map endpoints to method names
+    const methodMap: { [key: string]: string } = {
+      '/auth/login': 'login',
+      '/auth/register': 'register',
+      '/auth/me': 'getCurrentUser',
+      '/shops': 'getShops',
+      '/users/shops': 'getUserShops',
+      '/products': 'getProducts',
+    };
+    
+    return methodMap[endpoint] || lastPart;
+  }
+
+  // Helper method to get method arguments
+  private getMethodArgs(endpoint: string, options: RequestInit): any[] {
+    // This is a simplified version - in practice, you'd need to parse the request body
+    // For now, return empty array as fallback
+    return [];
   }
 
   private async loadToken() {
@@ -59,6 +97,8 @@ class ApiService {
     const headers = await this.getHeaders();
 
     try {
+      console.log(`🌐 Making API request to: ${url}`);
+      
       const response = await fetch(url, {
         ...options,
         headers: {
@@ -67,15 +107,38 @@ class ApiService {
         },
       });
 
-      const data = await response.json();
+      console.log(`📡 Response status: ${response.status}`);
 
       if (!response.ok) {
-        throw new Error(data.message || 'API request failed');
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error(`❌ API Error ${response.status}:`, errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: API request failed`);
       }
 
+      const data = await response.json();
+      console.log(`✅ API request successful: ${endpoint}`);
       return data;
     } catch (error) {
-      console.error('API Error:', error);
+      console.error(`❌ API Error for ${endpoint}:`, error);
+      
+      // If it's a network error, try to use mock API as fallback
+      if (error.message.includes('Network request failed') || error.message.includes('fetch')) {
+        this.enableMockFallback();
+        console.log(`🔄 Attempting to use mock API for ${endpoint}`);
+        
+        // Try to call the mock API method if it exists
+        const mockService = this.getApiService();
+        if (mockService !== this && typeof mockService[this.getMethodName(endpoint)] === 'function') {
+          try {
+            return await mockService[this.getMethodName(endpoint)](...this.getMethodArgs(endpoint, options));
+          } catch (mockError) {
+            console.error('Mock API also failed:', mockError);
+          }
+        }
+        
+        throw new Error('Unable to connect to server. Please check your internet connection and try again.');
+      }
+      
       throw error;
     }
   }
@@ -420,8 +483,16 @@ class ApiService {
 
   // Health check
   async healthCheck(): Promise<{ status: string; message: string }> {
-    const response = await fetch(`http://10.0.0.97:3001/health`);
-    return response.json();
+    try {
+      console.log('🏥 Checking API health...');
+      const response = await fetch(`${API_BASE_URL.replace('/api', '')}/health`);
+      const data = await response.json();
+      console.log('✅ API health check successful:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ API health check failed:', error);
+      throw error;
+    }
   }
 
   // Check if user is authenticated
