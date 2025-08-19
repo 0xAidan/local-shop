@@ -5,7 +5,6 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   RefreshControl,
   Alert,
@@ -14,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { Shop, Order } from '../types';
 import { ShopCard } from '../components/ShopCard';
+import { ScreenWrapper } from '../components/ScreenWrapper';
 
 interface CustomerDashboardProps {
   navigation: any;
@@ -173,7 +173,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
       
       <View style={styles.orderItems}>
         {order.products.map((product, index) => (
-          <Text key={index} style={styles.orderItem}>
+          <Text key={`${order.id}-product-${index}`} style={styles.orderItem}>
             {product.quantity}x ${product.price.toFixed(2)}
           </Text>
         ))}
@@ -194,7 +194,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
       <LinearGradient
         colors={['#000000', '#1a1a1a']}
@@ -348,15 +348,11 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
           <View style={styles.bottomSpacing} />
         </ScrollView>
       </LinearGradient>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
   gradient: {
     flex: 1,
   },

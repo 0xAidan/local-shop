@@ -392,7 +392,7 @@ export const CreateProductScreen: React.FC = () => {
                   <Text style={styles.label}>Uploaded Images ({formData.images.length})</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     {formData.images.map((image, index) => (
-                      <View key={index} style={styles.imageContainer}>
+                      <View key={`image-${index}-${image.url}`} style={styles.imageContainer}>
                         <OptimizedImage 
                           source={{ uri: image.url }} 
                           style={styles.productImage}

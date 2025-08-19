@@ -15,6 +15,7 @@ import { CategoryFilter, Category } from '../components/CategoryFilter';
 import { SearchBar, SearchFilters } from '../components/SearchBar';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
+import { ScreenWrapper } from '../components/ScreenWrapper';
 import { apiService } from '../services/api';
 import { recommendationService, RecommendationScore } from '../services/recommendationService';
 import { Shop, User } from '../types';
@@ -198,18 +199,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <ScreenWrapper>
         <StatusBar barStyle="light-content" backgroundColor="#000000" />
         <LoadingSpinner 
           message="Loading your local shops..." 
           fullScreen={true}
         />
-      </SafeAreaView>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
       <LinearGradient
         colors={['#000000', '#1a1a1a']}
@@ -281,6 +282,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               {/* Personalized Recommendations */}
               {recommendations.length > 0 && (
                 <ShopCarousel
+                  key="recommendations"
                   title="Recommended for You"
                   shops={recommendations.map(rec => rec.shop)}
                   onShopPress={handleShopPress}
@@ -296,6 +298,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               {/* Trending Shops */}
               {trendingShops.length > 0 && (
                 <ShopCarousel
+                  key="trending"
                   title="Trending Now"
                   shops={trendingShops}
                   onShopPress={handleShopPress}
@@ -305,6 +308,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               {/* Nearby Shops */}
               {nearbyShops.length > 0 && (
                 <ShopCarousel
+                  key="nearby"
                   title="Nearby"
                   shops={nearbyShops}
                   onShopPress={handleShopPress}
@@ -314,6 +318,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               {/* Featured Shops */}
               {featuredShops.length > 0 && (
                 <ShopCarousel
+                  key="featured"
                   title="Featured"
                   shops={featuredShops}
                   onShopPress={handleShopPress}
@@ -323,6 +328,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               {/* New Shops */}
               {newShops.length > 0 && (
                 <ShopCarousel
+                  key="new"
                   title="Recently Added"
                   shops={newShops}
                   onShopPress={handleShopPress}
@@ -333,18 +339,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               {!showSearchResults && (
                 <>
                   <ShopCarousel
+                    key="farmers-markets"
                     title="Farmers Markets"
                     shops={shops.filter(shop => shop.category === 'Farmers Market').slice(0, 8)}
                     onShopPress={handleShopPress}
                   />
                   
                   <ShopCarousel
+                    key="bakeries"
                     title="Bakeries"
                     shops={shops.filter(shop => shop.category === 'Bakery').slice(0, 8)}
                     onShopPress={handleShopPress}
                   />
                   
                   <ShopCarousel
+                    key="specialty-food"
                     title="Specialty Food"
                     shops={shops.filter(shop => shop.category === 'Specialty Food').slice(0, 8)}
                     onShopPress={handleShopPress}
@@ -355,15 +364,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           )}
         </ScrollView>
       </LinearGradient>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
   gradient: {
     flex: 1,
   },

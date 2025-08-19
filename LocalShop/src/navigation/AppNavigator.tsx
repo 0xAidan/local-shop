@@ -1,8 +1,9 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Platform, Dimensions } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 
 // Screens
@@ -16,6 +17,8 @@ import { MyShopsScreen } from '../screens/MyShopsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { CustomerDashboard } from '../screens/CustomerDashboard';
 import { MapScreen } from '../screens/MapScreen';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 export type RootStackParamList = {
   Login: undefined;
@@ -42,15 +45,35 @@ const CustomerTabNavigator = () => {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopWidth: 1,
-          borderTopColor: '#e1e1e1',
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          backgroundColor: '#1a1a1a',
+          borderTopWidth: 0,
+          borderTopColor: 'transparent',
+          paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+          paddingTop: 12,
+          height: Platform.OS === 'ios' ? 90 : 70,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          elevation: 20,
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: -4,
+          },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
         },
-        tabBarActiveTintColor: '#667eea',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: '#4A90E2',
+        tabBarInactiveTintColor: '#666666',
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+          marginTop: 4,
+        },
+        tabBarIconStyle: {
+          marginBottom: 2,
+        },
       }}
     >
       <Tab.Screen
@@ -58,8 +81,12 @@ const CustomerTabNavigator = () => {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>🏠</Text>
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons 
+              name={focused ? 'home' : 'home-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -68,8 +95,12 @@ const CustomerTabNavigator = () => {
         component={MapScreen}
         options={{
           tabBarLabel: 'Map',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>🗺️</Text>
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons 
+              name={focused ? 'map' : 'map-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -78,8 +109,12 @@ const CustomerTabNavigator = () => {
         component={CustomerDashboard}
         options={{
           tabBarLabel: 'Favorites',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>❤️</Text>
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons 
+              name={focused ? 'heart' : 'heart-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -88,8 +123,12 @@ const CustomerTabNavigator = () => {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>👤</Text>
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons 
+              name={focused ? 'person' : 'person-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -104,15 +143,35 @@ const ShopOwnerTabNavigator = () => {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopWidth: 1,
-          borderTopColor: '#e1e1e1',
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          backgroundColor: '#1a1a1a',
+          borderTopWidth: 0,
+          borderTopColor: 'transparent',
+          paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+          paddingTop: 12,
+          height: Platform.OS === 'ios' ? 90 : 70,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          elevation: 20,
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: -4,
+          },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
         },
-        tabBarActiveTintColor: '#667eea',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: '#4A90E2',
+        tabBarInactiveTintColor: '#666666',
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+          marginTop: 4,
+        },
+        tabBarIconStyle: {
+          marginBottom: 2,
+        },
       }}
     >
       <Tab.Screen
@@ -120,8 +179,12 @@ const ShopOwnerTabNavigator = () => {
         component={ShopOwnerDashboard}
         options={{
           tabBarLabel: 'Dashboard',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>📊</Text>
+          tabBarIcon: ({ color, size, focused }) => (
+            <MaterialIcons 
+              name={focused ? 'dashboard' : 'dashboard'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -130,8 +193,12 @@ const ShopOwnerTabNavigator = () => {
         component={MyShopsScreen}
         options={{
           tabBarLabel: 'My Shops',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>🏪</Text>
+          tabBarIcon: ({ color, size, focused }) => (
+            <FontAwesome5 
+              name={focused ? 'store' : 'store'} 
+              size={22} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -140,8 +207,12 @@ const ShopOwnerTabNavigator = () => {
         component={CreateProductScreen}
         options={{
           tabBarLabel: 'Products',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>📦</Text>
+          tabBarIcon: ({ color, size, focused }) => (
+            <MaterialIcons 
+              name={focused ? 'inventory' : 'inventory'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -150,8 +221,12 @@ const ShopOwnerTabNavigator = () => {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>👤</Text>
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons 
+              name={focused ? 'person' : 'person-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />

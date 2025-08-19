@@ -470,7 +470,7 @@ export const CreateShopScreen: React.FC = () => {
                   <Text style={styles.label}>Shop Images ({shopImages.length})</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     {shopImages.map((image, index) => (
-                      <View key={index} style={styles.imageContainer}>
+                      <View key={`shop-image-${index}-${image.url}`} style={styles.imageContainer}>
                         <OptimizedImage 
                           source={{ uri: image.url }} 
                           style={styles.shopImage}

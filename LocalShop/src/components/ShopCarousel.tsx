@@ -107,7 +107,7 @@ export const ShopCarousel: React.FC<ShopCarouselProps> = ({
                 {shop.features && shop.features.length > 0 && (
                   <View style={styles.featuresContainer}>
                     {shop.features.slice(0, 2).map((feature, idx) => (
-                      <View key={idx} style={styles.featureTag}>
+                      <View key={`${shop.id}-feature-${idx}`} style={styles.featureTag}>
                         <Text style={styles.featureText}>{feature}</Text>
                       </View>
                     ))}

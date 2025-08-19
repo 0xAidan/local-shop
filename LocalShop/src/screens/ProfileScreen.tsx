@@ -5,7 +5,6 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   Alert,
   Switch,
@@ -14,6 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
+import { ScreenWrapper } from '../components/ScreenWrapper';
 
 interface ProfileScreenProps {
   navigation: any;
@@ -117,14 +117,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.container}>
+      <ScreenWrapper>
         <Text style={styles.errorText}>User not found</Text>
-      </SafeAreaView>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
       <LinearGradient
         colors={['#000000', '#1a1a1a']}
@@ -297,15 +297,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           <View style={styles.bottomSpacing} />
         </ScrollView>
       </LinearGradient>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
   gradient: {
     flex: 1,
   },
