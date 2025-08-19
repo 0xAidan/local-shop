@@ -272,6 +272,11 @@ export interface ShopFormData {
     saturday?: { open: string; close: string };
     sunday?: { open: string; close: string };
   };
+  images?: Array<{
+    url: string;
+    caption?: string;
+    isPrimary?: boolean;
+  }>;
   tags?: string[];
   features?: string[];
 }
@@ -284,6 +289,12 @@ export interface ProductFormData {
   category: string;
   subcategory?: string;
   shop: string;
+  images?: Array<{
+    url: string;
+    caption?: string;
+    isPrimary?: boolean;
+    altText?: string;
+  }>;
   inventory: {
     quantity: number;
     unit: string;

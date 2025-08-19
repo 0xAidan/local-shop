@@ -45,14 +45,22 @@ router.post('/image',
       const b64 = Buffer.from(req.file.buffer).toString('base64');
       const dataURI = `data:${req.file.mimetype};base64,${b64}`;
 
-      // Upload to Cloudinary
+      // Upload to Cloudinary with optimized transformations
       const result = await cloudinary.uploader.upload(dataURI, {
         folder: 'local-shop',
         resource_type: 'auto',
         transformation: [
           { width: 800, height: 600, crop: 'limit' },
-          { quality: 'auto' }
-        ]
+          { quality: 'auto:good' },
+          { fetch_format: 'auto' },
+          { strip: true } // Remove metadata for smaller file size
+        ],
+        eager: [
+          { width: 400, height: 300, crop: 'limit', quality: 'auto:good' },
+          { width: 200, height: 150, crop: 'limit', quality: 'auto:good' }
+        ],
+        eager_async: true,
+        eager_notification_url: process.env.CLOUDINARY_NOTIFICATION_URL
       });
 
       res.json({
@@ -95,14 +103,22 @@ router.post('/images',
         const b64 = Buffer.from(file.buffer).toString('base64');
         const dataURI = `data:${file.mimetype};base64,${b64}`;
 
-        // Upload to Cloudinary
+        // Upload to Cloudinary with optimized transformations
         return await cloudinary.uploader.upload(dataURI, {
           folder: 'local-shop',
           resource_type: 'auto',
           transformation: [
             { width: 800, height: 600, crop: 'limit' },
-            { quality: 'auto' }
-          ]
+            { quality: 'auto:good' },
+            { fetch_format: 'auto' },
+            { strip: true } // Remove metadata for smaller file size
+          ],
+          eager: [
+            { width: 400, height: 300, crop: 'limit', quality: 'auto:good' },
+            { width: 200, height: 150, crop: 'limit', quality: 'auto:good' }
+          ],
+          eager_async: true,
+          eager_notification_url: process.env.CLOUDINARY_NOTIFICATION_URL
         });
       });
 

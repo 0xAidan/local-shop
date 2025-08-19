@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Shop, Product } from '../types';
+import { ShopLocationMap } from '../components/ShopLocationMap';
+import { OptimizedImage } from '../components/OptimizedImage';
 
 interface ShopDetailScreenProps {
   route: {
@@ -23,6 +25,7 @@ interface ShopDetailScreenProps {
 
 export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navigation }) => {
   const { shop } = route.params;
+  const [mapVisible, setMapVisible] = useState(false);
 
   // Mock products for this shop
   const shopProducts: Product[] = [
@@ -73,18 +76,33 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
     },
   ];
 
-  const ProductCard = ({ product }: { product: Product }) => (
-    <TouchableOpacity style={styles.productCard}>
-      <View style={styles.productImage}>
-        <Text style={styles.productImageText}>🍅</Text>
-      </View>
-      <View style={styles.productInfo}>
-        <Text style={styles.productName}>{product.name}</Text>
-        <Text style={styles.productDescription}>{product.description}</Text>
-        <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const ProductCard = ({ product }: { product: Product }) => {
+    // Get the primary image or first image
+    const primaryImage = product.images?.find(img => img.isPrimary) || product.images?.[0];
+    
+    return (
+      <TouchableOpacity style={styles.productCard}>
+        <View style={styles.productImage}>
+          {primaryImage ? (
+            <OptimizedImage 
+              source={{ uri: primaryImage.url }} 
+              style={styles.productImageActual}
+              resizeMode="cover"
+              placeholder="🍅"
+              fallback="❌"
+            />
+          ) : (
+            <Text style={styles.productImageText}>🍅</Text>
+          )}
+        </View>
+        <View style={styles.productInfo}>
+          <Text style={styles.productName}>{product.name}</Text>
+          <Text style={styles.productDescription}>{product.description}</Text>
+          <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -120,8 +138,11 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
           </View>
 
           {/* Map Location Button */}
-          <TouchableOpacity style={styles.mapButton}>
-            <Text style={styles.mapButtonText}>Map Location</Text>
+          <TouchableOpacity 
+            style={styles.mapButton}
+            onPress={() => setMapVisible(true)}
+          >
+            <Text style={styles.mapButtonText}>📍 View on Map</Text>
           </TouchableOpacity>
 
           {/* Products Section */}
@@ -150,6 +171,13 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
             </View>
           )}
         </ScrollView>
+
+        {/* Map Modal */}
+        <ShopLocationMap
+          shop={shop}
+          visible={mapVisible}
+          onClose={() => setMapVisible(false)}
+        />
       </LinearGradient>
     </SafeAreaView>
   );
@@ -268,6 +296,11 @@ const styles = StyleSheet.create({
   },
   productImageText: {
     fontSize: 24,
+  },
+  productImageActual: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
   },
   productInfo: {
     flex: 1,

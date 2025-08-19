@@ -4,15 +4,20 @@ import {
   Text, 
   View, 
   ScrollView, 
-  TouchableOpacity, 
   SafeAreaView,
-  StatusBar 
+  StatusBar,
+  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ShopCard } from '../components/ShopCard';
+import { ShopCarousel } from '../components/ShopCarousel';
+import { HomeHeader } from '../components/HomeHeader';
+import { CategoryFilter, Category } from '../components/CategoryFilter';
 import { SearchBar, SearchFilters } from '../components/SearchBar';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { EmptyState } from '../components/EmptyState';
 import { apiService } from '../services/api';
-import { Shop } from '../types';
+import { recommendationService, RecommendationScore } from '../services/recommendationService';
+import { Shop, User } from '../types';
 
 interface HomeScreenProps {
   navigation: any;
@@ -22,28 +27,86 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [filteredShops, setFilteredShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [userLocation, setUserLocation] = useState('Thunder Bay');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState<SearchFilters>({});
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // Recommendation states
+  const [recommendations, setRecommendations] = useState<RecommendationScore[]>([]);
+  const [trendingShops, setTrendingShops] = useState<Shop[]>([]);
+  const [nearbyShops, setNearbyShops] = useState<Shop[]>([]);
+  const [featuredShops, setFeaturedShops] = useState<Shop[]>([]);
+  const [newShops, setNewShops] = useState<Shop[]>([]);
 
   useEffect(() => {
-    loadShops();
+    loadInitialData();
   }, []);
 
   useEffect(() => {
+    if (shops.length > 0) {
+      generateRecommendations();
+    }
+  }, [shops, user]);
+
+  useEffect(() => {
     applyFilters();
-  }, [shops, searchQuery, activeFilters]);
+  }, [shops, searchQuery, activeFilters, selectedCategory]);
+
+  const loadInitialData = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        loadShops(),
+        loadUser(),
+      ]);
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadShops = async () => {
     try {
-      setLoading(true);
       const response = await apiService.getShops();
       setShops(response.shops);
     } catch (error) {
       console.error('Error loading shops:', error);
-    } finally {
-      setLoading(false);
     }
+  };
+
+  const loadUser = async () => {
+    try {
+      if (apiService.isAuthenticated()) {
+        const currentUser = await apiService.getCurrentUser();
+        setUser(currentUser);
+      }
+    } catch (error) {
+      console.error('Error loading user:', error);
+    }
+  };
+
+  const generateRecommendations = () => {
+    // Mock user location for now (in real app, get from GPS)
+    const mockUserLocation = { latitude: 48.3809, longitude: -89.2477 }; // Thunder Bay coordinates
+
+    // Generate personalized recommendations
+    const personalizedRecs = recommendationService.getPersonalizedRecommendations(
+      shops,
+      user,
+      mockUserLocation,
+      8
+    );
+    setRecommendations(personalizedRecs);
+
+    // Generate other sections
+    setTrendingShops(recommendationService.getTrendingShops(shops, 8));
+    setNearbyShops(recommendationService.getNearbyShops(shops, mockUserLocation, 15, 8));
+    setFeaturedShops(recommendationService.getFeaturedShops(shops, 8));
+    setNewShops(recommendationService.getNewShops(shops, 8));
   };
 
   const applyFilters = () => {
@@ -54,22 +117,36 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(shop => 
         shop.name.toLowerCase().includes(query) ||
-        shop.description.toLowerCase().includes(query) ||
+        shop.description?.toLowerCase().includes(query) ||
         shop.category.toLowerCase().includes(query)
       );
     }
 
     // Apply category filter
+    if (selectedCategory) {
+      filtered = filtered.filter(shop => {
+        const categoryMap: Record<string, string> = {
+          'farmers-market': 'Farmers Market',
+          'bakery': 'Bakery',
+          'specialty-food': 'Specialty Food',
+          'coffee': 'Coffee',
+          'dairy': 'Dairy',
+          'meat': 'Meat',
+          'organic': 'Organic',
+        };
+        return shop.category === categoryMap[selectedCategory];
+      });
+    }
+
+    // Apply other filters
     if (activeFilters.category && activeFilters.category !== 'All Categories') {
       filtered = filtered.filter(shop => shop.category === activeFilters.category);
     }
 
-    // Apply rating filter
     if (activeFilters.rating) {
-      filtered = filtered.filter(shop => shop.rating.average >= activeFilters.rating!);
+      filtered = filtered.filter(shop => shop.rating?.average >= activeFilters.rating!);
     }
 
-    // Apply features filter
     if (activeFilters.features && activeFilters.features.length > 0) {
       filtered = filtered.filter(shop => 
         activeFilters.features!.some(feature => 
@@ -93,39 +170,43 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     navigation.navigate('ShopDetail', { shop });
   };
 
-  const CategorySection = ({ title, shops }: { title: string; shops: Shop[] }) => (
-    <View style={styles.categorySection}>
-      <Text style={styles.categoryTitle}>{title}</Text>
-      <View style={styles.shopsRow}>
-        {shops.map((shop) => (
-          <ShopCard 
-            key={shop.id} 
-            shop={shop} 
-            onPress={() => handleShopPress(shop)}
-          />
-        ))}
-      </View>
-    </View>
-  );
+  const handleProfilePress = () => {
+    navigation.navigate('Profile');
+  };
 
-  // Group filtered shops by category
-  const shopsByCategory = filteredShops.reduce((acc, shop) => {
-    if (!acc[shop.category]) {
-      acc[shop.category] = [];
-    }
-    acc[shop.category].push(shop);
-    return acc;
-  }, {} as Record<string, Shop[]>);
+  const handleLocationPress = () => {
+    // TODO: Implement location picker
+    console.log('Location pressed');
+  };
 
-  const categories = [
-    { title: 'Trending', shops: filteredShops.slice(0, 2) },
-    { title: 'Farmers Markets', shops: shopsByCategory['Farmers Market'] || [] },
-    { title: 'Bakeries', shops: shopsByCategory['Bakery'] || [] },
-    { title: 'Specialty Food', shops: shopsByCategory['Specialty Food'] || [] },
-  ];
+  const handleCategorySelect = (categoryId: string | null) => {
+    setSelectedCategory(categoryId);
+  };
 
-  // Show search results if there's a search query
-  const showSearchResults = searchQuery.trim() || Object.keys(activeFilters).length > 0;
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadInitialData();
+    setRefreshing(false);
+  };
+
+  const onRefresh = React.useCallback(() => {
+    handleRefresh();
+  }, []);
+
+  // Show search results if there's a search query or filters
+  const showSearchResults = searchQuery.trim() || Object.keys(activeFilters).length > 0 || selectedCategory;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        <LoadingSpinner 
+          message="Loading your local shops..." 
+          fullScreen={true}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -135,57 +216,142 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         style={styles.gradient}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.locationContainer}>
-            <Text style={styles.locationText}>{userLocation}</Text>
-            <View style={styles.userContainer}>
-              <Text style={styles.username}>Welcome!</Text>
-              <View style={styles.userAvatar} />
-            </View>
-          </View>
-        </View>
+        <HomeHeader
+          user={user}
+          userLocation={userLocation}
+          onProfilePress={handleProfilePress}
+          onLocationPress={handleLocationPress}
+        />
 
         {/* Search Bar */}
         <SearchBar
           onSearch={handleSearch}
           onFilterChange={handleFilterChange}
-          placeholder="Search shops..."
+          placeholder="Search shops, products..."
+        />
+
+        {/* Category Filter */}
+        <CategoryFilter
+          selectedCategory={selectedCategory}
+          onCategorySelect={handleCategorySelect}
         />
 
         {/* Content */}
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading shops...</Text>
-            </View>
-          ) : showSearchResults ? (
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#4A90E2"
+              colors={["#4A90E2"]}
+            />
+          }
+        >
+          {showSearchResults ? (
             // Show search results
             <View style={styles.searchResultsContainer}>
               <Text style={styles.searchResultsTitle}>
                 {filteredShops.length} shop{filteredShops.length !== 1 ? 's' : ''} found
               </Text>
               {filteredShops.length > 0 ? (
-                <View style={styles.searchResultsGrid}>
-                  {filteredShops.map((shop) => (
-                    <ShopCard 
-                      key={shop.id} 
-                      shop={shop} 
-                      onPress={() => handleShopPress(shop)}
-                    />
-                  ))}
-                </View>
+                <ShopCarousel
+                  title="Search Results"
+                  shops={filteredShops}
+                  onShopPress={handleShopPress}
+                />
               ) : (
-                <View style={styles.noResultsContainer}>
-                  <Text style={styles.noResultsText}>No shops found</Text>
-                  <Text style={styles.noResultsSubtext}>Try adjusting your search or filters</Text>
-                </View>
+                <EmptyState
+                  title="No shops found"
+                  message="Try adjusting your search terms or filters to find what you're looking for."
+                  icon="🏪"
+                  actionText="Clear Filters"
+                  onAction={() => {
+                    setSearchQuery('');
+                    setActiveFilters({});
+                    setSelectedCategory(null);
+                  }}
+                />
               )}
             </View>
           ) : (
-            // Show regular categories
-            categories.map((category, index) => (
-              <CategorySection key={index} title={category.title} shops={category.shops} />
-            ))
+            // Show regular sections with carousels
+            <>
+              {/* Personalized Recommendations */}
+              {recommendations.length > 0 && (
+                <ShopCarousel
+                  title="Recommended for You"
+                  shops={recommendations.map(rec => rec.shop)}
+                  onShopPress={handleShopPress}
+                  showViewAll={true}
+                  onViewAllPress={() => {
+                    setSelectedCategory(null);
+                    setSearchQuery('');
+                    setActiveFilters({});
+                  }}
+                />
+              )}
+
+              {/* Trending Shops */}
+              {trendingShops.length > 0 && (
+                <ShopCarousel
+                  title="Trending Now"
+                  shops={trendingShops}
+                  onShopPress={handleShopPress}
+                />
+              )}
+
+              {/* Nearby Shops */}
+              {nearbyShops.length > 0 && (
+                <ShopCarousel
+                  title="Nearby"
+                  shops={nearbyShops}
+                  onShopPress={handleShopPress}
+                />
+              )}
+
+              {/* Featured Shops */}
+              {featuredShops.length > 0 && (
+                <ShopCarousel
+                  title="Featured"
+                  shops={featuredShops}
+                  onShopPress={handleShopPress}
+                />
+              )}
+
+              {/* New Shops */}
+              {newShops.length > 0 && (
+                <ShopCarousel
+                  title="Recently Added"
+                  shops={newShops}
+                  onShopPress={handleShopPress}
+                />
+              )}
+
+              {/* Category Sections */}
+              {!showSearchResults && (
+                <>
+                  <ShopCarousel
+                    title="Farmers Markets"
+                    shops={shops.filter(shop => shop.category === 'Farmers Market').slice(0, 8)}
+                    onShopPress={handleShopPress}
+                  />
+                  
+                  <ShopCarousel
+                    title="Bakeries"
+                    shops={shops.filter(shop => shop.category === 'Bakery').slice(0, 8)}
+                    onShopPress={handleShopPress}
+                  />
+                  
+                  <ShopCarousel
+                    title="Specialty Food"
+                    shops={shops.filter(shop => shop.category === 'Specialty Food').slice(0, 8)}
+                    onShopPress={handleShopPress}
+                  />
+                </>
+              )}
+            </>
           )}
         </ScrollView>
       </LinearGradient>
@@ -201,90 +367,20 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
-  header: {
-    paddingTop: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  locationText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  userContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  username: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginRight: 8,
-  },
-  userAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#666666',
-  },
+
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-  },
-  categorySection: {
-    marginBottom: 30,
-  },
-  categoryTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 15,
-  },
-  shopsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 50,
-  },
-  loadingText: {
-    color: '#FFFFFF',
-    fontSize: 16,
   },
   searchResultsContainer: {
     marginBottom: 20,
   },
   searchResultsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 15,
+    marginBottom: 16,
+    paddingHorizontal: 20,
+    letterSpacing: -0.5,
   },
-  searchResultsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  noResultsContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  noResultsText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  noResultsSubtext: {
-    fontSize: 14,
-    color: '#CCCCCC',
-    textAlign: 'center',
-  },
+
 }); 

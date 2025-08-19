@@ -33,12 +33,19 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "Allow LocalShop to use your location to show shops near you."
-        }
-      ]
+              [
+          "expo-location",
+          {
+            "locationAlwaysAndWhenInUsePermission": "Allow LocalShop to use your location to show shops near you."
+          }
+        ],
+        [
+          "expo-image-picker",
+          {
+            "photosPermission": "The app accesses your photos to let you share them with your customers.",
+            "cameraPermission": "The app accesses your camera to let you take photos of your products."
+          }
+        ]
     ]
   }
 }

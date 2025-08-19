@@ -10,11 +10,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   Switch,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
 import { apiService } from '../services/api';
 import { ProductFormData, Shop } from '../types';
+import { ImageEditor } from '../components/ImageEditor';
+import { OptimizedImage } from '../components/OptimizedImage';
 
 const PRODUCT_CATEGORIES = [
   'Food',
@@ -50,6 +54,7 @@ export const CreateProductScreen: React.FC = () => {
     category: '',
     subcategory: '',
     shop: '',
+    images: [], // Add this field
     inventory: {
       quantity: 0,
       unit: 'pieces',
@@ -81,6 +86,9 @@ export const CreateProductScreen: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [editingImage, setEditingImage] = useState<string | null>(null);
+  const [imageEditorVisible, setImageEditorVisible] = useState(false);
 
   const navigation = useNavigation();
 
@@ -155,6 +163,115 @@ export const CreateProductScreen: React.FC = () => {
         return [...prev, allergen];
       }
     });
+  };
+
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant camera roll permissions to upload images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const takePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant camera permissions to take photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
+  const uploadImage = async (imageUri: string) => {
+    setUploadingImages(true);
+    try {
+      const uploadedImage = await apiService.uploadImage(imageUri, 'image');
+      
+      setFormData(prev => ({
+        ...prev,
+        images: [...(prev.images || []), {
+          url: uploadedImage.url,
+          caption: '',
+          isPrimary: prev.images?.length === 0, // First image is primary
+          altText: formData.name || 'Product image'
+        }]
+      }));
+      
+      Alert.alert('Success', 'Image uploaded successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images?.filter((_, i) => i !== index) || []
+    }));
+  };
+
+  const setPrimaryImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images?.map((img, i) => ({
+        ...img,
+        isPrimary: i === index
+      })) || []
+    }));
+  };
+
+  const editImage = (imageUri: string) => {
+    setEditingImage(imageUri);
+    setImageEditorVisible(true);
+  };
+
+  const handleImageEditSave = (editedImageUri: string) => {
+    // Replace the original image with the edited one
+    if (editingImage) {
+      setFormData(prev => ({
+        ...prev,
+        images: prev.images?.map(img => 
+          img.url === editingImage ? { ...img, url: editedImageUri } : img
+        ) || []
+      }));
+    }
+    setImageEditorVisible(false);
+    setEditingImage(null);
+  };
+
+  const handleImageEditCancel = () => {
+    setImageEditorVisible(false);
+    setEditingImage(null);
   };
 
   const validateForm = (): boolean => {
@@ -241,6 +358,83 @@ export const CreateProductScreen: React.FC = () => {
           </View>
 
           <View style={styles.content}>
+            {/* Product Images */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Product Images</Text>
+              
+              <View style={styles.imageUploadContainer}>
+                <TouchableOpacity
+                  style={styles.imageUploadButton}
+                  onPress={pickImage}
+                  disabled={uploadingImages}
+                >
+                  <Text style={styles.imageUploadButtonText}>📷 Choose from Gallery</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.imageUploadButton}
+                  onPress={takePhoto}
+                  disabled={uploadingImages}
+                >
+                  <Text style={styles.imageUploadButtonText}>🤳 Take Photo</Text>
+                </TouchableOpacity>
+              </View>
+
+              {uploadingImages && (
+                <View style={styles.uploadingContainer}>
+                  <Text style={styles.uploadingText}>Uploading image...</Text>
+                </View>
+              )}
+
+              {/* Display uploaded images */}
+              {formData.images && formData.images.length > 0 && (
+                <View style={styles.imagesContainer}>
+                  <Text style={styles.label}>Uploaded Images ({formData.images.length})</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {formData.images.map((image, index) => (
+                      <View key={index} style={styles.imageContainer}>
+                        <OptimizedImage 
+                          source={{ uri: image.url }} 
+                          style={styles.productImage}
+                          placeholder="🍅"
+                          fallback="❌"
+                        />
+                        <View style={styles.imageActions}>
+                          <TouchableOpacity
+                            style={styles.editButton}
+                            onPress={() => editImage(image.url)}
+                          >
+                            <Text style={styles.editButtonText}>✏️ Edit</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[
+                              styles.primaryButton,
+                              image.isPrimary && styles.primaryButtonActive
+                            ]}
+                            onPress={() => setPrimaryImage(index)}
+                          >
+                            <Text style={styles.primaryButtonText}>
+                              {image.isPrimary ? 'Primary' : 'Set Primary'}
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.removeButton}
+                            onPress={() => removeImage(index)}
+                          >
+                            <Text style={styles.removeButtonText}>Remove</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              <Text style={styles.helpText}>
+                Add high-quality images of your product. The first image will be the primary image.
+              </Text>
+            </View>
+
             {/* Basic Information */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Basic Information</Text>
@@ -476,6 +670,16 @@ export const CreateProductScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* Image Editor Modal */}
+        {editingImage && (
+          <ImageEditor
+            visible={imageEditorVisible}
+            imageUri={editingImage}
+            onSave={handleImageEditSave}
+            onCancel={handleImageEditCancel}
+          />
+        )}
       </KeyboardAvoidingView>
     </LinearGradient>
   );
@@ -673,5 +877,92 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  imageUploadContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  imageUploadButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 15,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  imageUploadButtonText: {
+    color: '#667eea',
+    fontWeight: '600',
+  },
+  uploadingContainer: {
+    backgroundColor: '#FFF3CD',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  uploadingText: {
+    color: '#856404',
+    fontWeight: '500',
+  },
+  imagesContainer: {
+    marginBottom: 15,
+  },
+  imageContainer: {
+    marginRight: 15,
+    alignItems: 'center',
+  },
+  productImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  imageActions: {
+    flexDirection: 'row',
+    gap: 5,
+  },
+  editButton: {
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  editButtonText: {
+    fontSize: 12,
+    color: '#2E7D32',
+    fontWeight: '500',
+  },
+  primaryButton: {
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  primaryButtonActive: {
+    backgroundColor: '#2196F3',
+  },
+  primaryButtonText: {
+    fontSize: 12,
+    color: '#1976D2',
+    fontWeight: '500',
+  },
+  removeButton: {
+    backgroundColor: '#FFEBEE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  removeButtonText: {
+    fontSize: 12,
+    color: '#D32F2F',
+    fontWeight: '500',
+  },
+  helpText: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
 }); 

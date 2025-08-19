@@ -10,12 +10,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   Switch,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { apiService } from '../services/api';
 import { ShopFormData } from '../types';
+import { OptimizedImage } from '../components/OptimizedImage';
 
 const SHOP_CATEGORIES = [
   'Grocery',
@@ -77,6 +79,12 @@ export const CreateShopScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showHours, setShowHours] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
+  const [shopImages, setShopImages] = useState<Array<{
+    url: string;
+    caption?: string;
+    isPrimary?: boolean;
+  }>>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const navigation = useNavigation();
 
@@ -128,6 +136,48 @@ export const CreateShopScreen: React.FC = () => {
         return [...prev, feature];
       }
     });
+  };
+
+  const pickShopImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant camera roll permissions to upload images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9], // Better for shop banners
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadShopImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const uploadShopImage = async (imageUri: string) => {
+    setUploadingImages(true);
+    try {
+      const uploadedImage = await apiService.uploadImage(imageUri, 'image');
+      
+      setShopImages(prev => [...prev, {
+        url: uploadedImage.url,
+        caption: '',
+        isPrimary: prev.length === 0, // First image is primary
+      }]);
+      
+      Alert.alert('Success', 'Shop image uploaded successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImages(false);
+    }
   };
 
   const validateForm = (): boolean => {
@@ -394,6 +444,53 @@ export const CreateShopScreen: React.FC = () => {
               )}
             </View>
 
+            {/* Shop Images */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Shop Images</Text>
+              
+              <View style={styles.imageUploadContainer}>
+                <TouchableOpacity
+                  style={styles.imageUploadButton}
+                  onPress={pickShopImage}
+                  disabled={uploadingImages}
+                >
+                  <Text style={styles.imageUploadButtonText}>📷 Add Shop Photos</Text>
+                </TouchableOpacity>
+              </View>
+
+              {uploadingImages && (
+                <View style={styles.uploadingContainer}>
+                  <Text style={styles.uploadingText}>Uploading image...</Text>
+                </View>
+              )}
+
+              {/* Display uploaded images */}
+              {shopImages.length > 0 && (
+                <View style={styles.imagesContainer}>
+                  <Text style={styles.label}>Shop Images ({shopImages.length})</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {shopImages.map((image, index) => (
+                      <View key={index} style={styles.imageContainer}>
+                        <OptimizedImage 
+                          source={{ uri: image.url }} 
+                          style={styles.shopImage}
+                          placeholder="🏪"
+                          fallback="❌"
+                        />
+                        <Text style={styles.imageCaption}>
+                          {image.isPrimary ? 'Primary Image' : `Image ${index + 1}`}
+                        </Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              <Text style={styles.helpText}>
+                Add photos of your shop, products, or storefront to attract customers.
+              </Text>
+            </View>
+
             {/* Submit Button */}
             <TouchableOpacity
               style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
@@ -603,5 +700,57 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  imageUploadContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  imageUploadButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 15,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  imageUploadButtonText: {
+    color: '#667eea',
+    fontWeight: '600',
+  },
+  uploadingContainer: {
+    backgroundColor: '#FFF3CD',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  uploadingText: {
+    color: '#856404',
+    fontWeight: '500',
+  },
+  imagesContainer: {
+    marginBottom: 15,
+  },
+  imageContainer: {
+    marginRight: 15,
+    alignItems: 'center',
+  },
+  shopImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  imageCaption: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  helpText: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
 }); 

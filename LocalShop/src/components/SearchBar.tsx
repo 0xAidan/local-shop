@@ -7,8 +7,11 @@ import {
   Text,
   Modal,
   ScrollView,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -88,23 +91,32 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     <View style={styles.container}>
       {/* Search Input */}
       <View style={styles.searchContainer}>
+        <View style={styles.searchIconContainer}>
+          <Text style={styles.searchIcon}>🔍</Text>
+        </View>
         <TextInput
           style={styles.searchInput}
           placeholder={placeholder}
-          placeholderTextColor="#999"
+          placeholderTextColor="#999999"
           value={searchQuery}
           onChangeText={handleSearch}
         />
         <TouchableOpacity
           style={styles.filterButton}
           onPress={() => setShowFilters(true)}
+          activeOpacity={0.8}
         >
-          <Text style={styles.filterButtonText}>🔍</Text>
-          {getActiveFiltersCount() > 0 && (
-            <View style={styles.filterBadge}>
-              <Text style={styles.filterBadgeText}>{getActiveFiltersCount()}</Text>
-            </View>
-          )}
+          <LinearGradient
+            colors={getActiveFiltersCount() > 0 ? ['#4A90E2', '#357ABD'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+            style={styles.filterButtonGradient}
+          >
+            <Text style={styles.filterButtonText}>⚙️</Text>
+            {getActiveFiltersCount() > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{getActiveFiltersCount()}</Text>
+              </View>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
@@ -118,21 +130,27 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <LinearGradient
-              colors={['#000000', '#1a1a1a']}
+              colors={['#1a1a1a', '#000000']}
               style={styles.modalGradient}
             >
               {/* Header */}
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Filters</Text>
+                <Text style={styles.modalTitle}>Search Filters</Text>
                 <TouchableOpacity
                   style={styles.closeButton}
                   onPress={() => setShowFilters(false)}
+                  activeOpacity={0.7}
                 >
-                  <Text style={styles.closeButtonText}>✕</Text>
+                  <LinearGradient
+                    colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+                    style={styles.closeButtonGradient}
+                  >
+                    <Text style={styles.closeButtonText}>✕</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={styles.modalBody}>
+              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
                 {/* Category Filter */}
                 <View style={styles.filterSection}>
                   <Text style={styles.filterSectionTitle}>Category</Text>
@@ -145,6 +163,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                           filters.category === category && styles.categoryButtonActive,
                         ]}
                         onPress={() => handleFilterChange({ category })}
+                        activeOpacity={0.8}
                       >
                         <Text
                           style={[
@@ -171,6 +190,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                           filters.rating === rating && styles.ratingButtonActive,
                         ]}
                         onPress={() => handleFilterChange({ rating })}
+                        activeOpacity={0.8}
                       >
                         <Text style={styles.ratingButtonText}>
                           {rating}+ ⭐
@@ -198,6 +218,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                             : [...currentFeatures, feature];
                           handleFilterChange({ features: newFeatures });
                         }}
+                        activeOpacity={0.8}
                       >
                         <Text
                           style={[
@@ -215,14 +236,24 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
               {/* Footer */}
               <View style={styles.modalFooter}>
-                <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
+                <TouchableOpacity 
+                  style={styles.clearButton} 
+                  onPress={clearFilters}
+                  activeOpacity={0.8}
+                >
                   <Text style={styles.clearButtonText}>Clear All</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.applyButton}
                   onPress={() => setShowFilters(false)}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.applyButtonText}>Apply Filters</Text>
+                  <LinearGradient
+                    colors={['#4A90E2', '#357ABD']}
+                    style={styles.applyButtonGradient}
+                  >
+                    <Text style={styles.applyButtonText}>Apply Filters</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
             </LinearGradient>
@@ -236,55 +267,78 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginHorizontal: 20,
-    marginVertical: 10,
+    marginVertical: 16,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  searchIconContainer: {
+    marginRight: 12,
+  },
+  searchIcon: {
+    fontSize: 18,
+    opacity: 0.7,
   },
   searchInput: {
     flex: 1,
     color: '#FFFFFF',
     fontSize: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
+    fontWeight: '500',
   },
   filterButton: {
     marginLeft: 12,
-    padding: 8,
+  },
+  filterButtonGradient: {
+    padding: 10,
+    borderRadius: 12,
     position: 'relative',
   },
   filterButtonText: {
-    fontSize: 20,
+    fontSize: 18,
   },
   filterBadge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: '#667eea',
+    top: -4,
+    right: -4,
+    backgroundColor: '#FF4757',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#000000',
   },
   filterBadgeText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 10,
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    height: '80%',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    height: '85%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     overflow: 'hidden',
   },
   modalGradient: {
@@ -294,129 +348,151 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
   closeButton: {
-    padding: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  closeButtonGradient: {
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   closeButtonText: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 18,
+    fontWeight: '600',
   },
   modalBody: {
     flex: 1,
-    padding: 20,
+    padding: 24,
   },
   filterSection: {
-    marginBottom: 30,
+    marginBottom: 32,
   },
   filterSectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 15,
+    marginBottom: 16,
+    letterSpacing: -0.3,
   },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
   },
   categoryButton: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   categoryButtonActive: {
-    backgroundColor: '#667eea',
-    borderColor: '#667eea',
+    backgroundColor: '#4A90E2',
+    borderColor: '#4A90E2',
   },
   categoryButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
+    fontWeight: '500',
   },
   categoryButtonTextActive: {
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   ratingContainer: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
   ratingButton: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   ratingButtonActive: {
-    backgroundColor: '#667eea',
-    borderColor: '#667eea',
+    backgroundColor: '#4A90E2',
+    borderColor: '#4A90E2',
   },
   ratingButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
+    fontWeight: '500',
   },
   featuresGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
   },
   featureButton: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   featureButtonActive: {
-    backgroundColor: '#667eea',
-    borderColor: '#667eea',
+    backgroundColor: '#4A90E2',
+    borderColor: '#4A90E2',
   },
   featureButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
+    fontWeight: '500',
   },
   featureButtonTextActive: {
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   modalFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 20,
+    padding: 24,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    gap: 16,
   },
   clearButton: {
+    flex: 1,
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
   },
   clearButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
   },
   applyButton: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  applyButtonGradient: {
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#667eea',
+    paddingVertical: 16,
+    alignItems: 'center',
   },
   applyButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 }); 
