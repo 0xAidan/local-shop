@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ShopMap } from '../components/ShopMap';
+import { SearchBar, SearchFilters } from '../components/SearchBar';
 import { apiService } from '../services/api';
 import { Shop } from '../types';
 
@@ -20,12 +21,19 @@ interface MapScreenProps {
 
 export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
   const [shops, setShops] = useState<Shop[]>([]);
+  const [filteredShops, setFilteredShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilters, setActiveFilters] = useState<SearchFilters>({});
 
   useEffect(() => {
     loadShops();
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [shops, searchQuery, activeFilters]);
 
   const loadShops = async () => {
     try {
@@ -41,6 +49,49 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...shops];
+
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(shop => 
+        shop.name.toLowerCase().includes(query) ||
+        shop.description.toLowerCase().includes(query) ||
+        shop.category.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply category filter
+    if (activeFilters.category && activeFilters.category !== 'All Categories') {
+      filtered = filtered.filter(shop => shop.category === activeFilters.category);
+    }
+
+    // Apply rating filter
+    if (activeFilters.rating) {
+      filtered = filtered.filter(shop => shop.rating.average >= activeFilters.rating!);
+    }
+
+    // Apply features filter
+    if (activeFilters.features && activeFilters.features.length > 0) {
+      filtered = filtered.filter(shop => 
+        activeFilters.features!.some(feature => 
+          shop.features?.includes(feature)
+        )
+      );
+    }
+
+    setFilteredShops(filtered);
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleFilterChange = (filters: SearchFilters) => {
+    setActiveFilters(filters);
   };
 
   const handleShopPress = (shop: Shop) => {
@@ -98,14 +149,21 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
         <View style={styles.header}>
           <Text style={styles.title}>Shop Map</Text>
           <Text style={styles.subtitle}>
-            {shops.length} shops found near you
+            {filteredShops.length} shops found near you
           </Text>
         </View>
+
+        {/* Search Bar */}
+        <SearchBar
+          onSearch={handleSearch}
+          onFilterChange={handleFilterChange}
+          placeholder="Search shops on map..."
+        />
 
         {/* Map */}
         <View style={styles.mapContainer}>
           <ShopMap
-            shops={shops}
+            shops={filteredShops}
             onShopPress={handleShopPress}
             style={styles.map}
           />

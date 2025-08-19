@@ -106,12 +106,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const shop = await Shop.findById(req.params.id)
-      .populate('owner', 'firstName lastName username avatar')
-      .populate({
-        path: 'products',
-        match: { isAvailable: true },
-        options: { limit: 20 }
-      });
+      .populate('owner', 'firstName lastName username avatar');
     
     if (!shop) {
       return res.status(404).json({

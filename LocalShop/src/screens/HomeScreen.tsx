@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ShopCard } from '../components/ShopCard';
+import { SearchBar, SearchFilters } from '../components/SearchBar';
 import { apiService } from '../services/api';
 import { Shop } from '../types';
 
@@ -19,12 +20,19 @@ interface HomeScreenProps {
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [shops, setShops] = useState<Shop[]>([]);
+  const [filteredShops, setFilteredShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState('Thunder Bay');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilters, setActiveFilters] = useState<SearchFilters>({});
 
   useEffect(() => {
     loadShops();
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [shops, searchQuery, activeFilters]);
 
   const loadShops = async () => {
     try {
@@ -36,6 +44,49 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...shops];
+
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(shop => 
+        shop.name.toLowerCase().includes(query) ||
+        shop.description.toLowerCase().includes(query) ||
+        shop.category.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply category filter
+    if (activeFilters.category && activeFilters.category !== 'All Categories') {
+      filtered = filtered.filter(shop => shop.category === activeFilters.category);
+    }
+
+    // Apply rating filter
+    if (activeFilters.rating) {
+      filtered = filtered.filter(shop => shop.rating.average >= activeFilters.rating!);
+    }
+
+    // Apply features filter
+    if (activeFilters.features && activeFilters.features.length > 0) {
+      filtered = filtered.filter(shop => 
+        activeFilters.features!.some(feature => 
+          shop.features?.includes(feature)
+        )
+      );
+    }
+
+    setFilteredShops(filtered);
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleFilterChange = (filters: SearchFilters) => {
+    setActiveFilters(filters);
   };
 
   const handleShopPress = (shop: Shop) => {
@@ -57,8 +108,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     </View>
   );
 
-  // Group shops by category
-  const shopsByCategory = shops.reduce((acc, shop) => {
+  // Group filtered shops by category
+  const shopsByCategory = filteredShops.reduce((acc, shop) => {
     if (!acc[shop.category]) {
       acc[shop.category] = [];
     }
@@ -67,11 +118,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   }, {} as Record<string, Shop[]>);
 
   const categories = [
-    { title: 'Trending', shops: shops.slice(0, 2) },
+    { title: 'Trending', shops: filteredShops.slice(0, 2) },
     { title: 'Farmers Markets', shops: shopsByCategory['Farmers Market'] || [] },
     { title: 'Bakeries', shops: shopsByCategory['Bakery'] || [] },
     { title: 'Specialty Food', shops: shopsByCategory['Specialty Food'] || [] },
   ];
+
+  // Show search results if there's a search query
+  const showSearchResults = searchQuery.trim() || Object.keys(activeFilters).length > 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -91,13 +145,44 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           </View>
         </View>
 
+        {/* Search Bar */}
+        <SearchBar
+          onSearch={handleSearch}
+          onFilterChange={handleFilterChange}
+          placeholder="Search shops..."
+        />
+
         {/* Content */}
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {loading ? (
             <View style={styles.loadingContainer}>
               <Text style={styles.loadingText}>Loading shops...</Text>
             </View>
+          ) : showSearchResults ? (
+            // Show search results
+            <View style={styles.searchResultsContainer}>
+              <Text style={styles.searchResultsTitle}>
+                {filteredShops.length} shop{filteredShops.length !== 1 ? 's' : ''} found
+              </Text>
+              {filteredShops.length > 0 ? (
+                <View style={styles.searchResultsGrid}>
+                  {filteredShops.map((shop) => (
+                    <ShopCard 
+                      key={shop.id} 
+                      shop={shop} 
+                      onPress={() => handleShopPress(shop)}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.noResultsContainer}>
+                  <Text style={styles.noResultsText}>No shops found</Text>
+                  <Text style={styles.noResultsSubtext}>Try adjusting your search or filters</Text>
+                </View>
+              )}
+            </View>
           ) : (
+            // Show regular categories
             categories.map((category, index) => (
               <CategorySection key={index} title={category.title} shops={category.shops} />
             ))
@@ -172,5 +257,34 @@ const styles = StyleSheet.create({
   loadingText: {
     color: '#FFFFFF',
     fontSize: 16,
+  },
+  searchResultsContainer: {
+    marginBottom: 20,
+  },
+  searchResultsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 15,
+  },
+  searchResultsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  noResultsContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noResultsText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  noResultsSubtext: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    textAlign: 'center',
   },
 }); 
