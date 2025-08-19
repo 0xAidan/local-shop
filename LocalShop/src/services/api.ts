@@ -10,7 +10,7 @@ import {
 } from '../types';
 
 // Use mock API for testing (set to false to use real backend)
-const USE_MOCK_API = true;
+const USE_MOCK_API = false;
 const API_BASE_URL = 'http://localhost:3001/api';
 
 // Import mock service

@@ -15,6 +15,7 @@ import { CreateProductScreen } from '../screens/CreateProductScreen';
 import { MyShopsScreen } from '../screens/MyShopsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { CustomerDashboard } from '../screens/CustomerDashboard';
+import { MapScreen } from '../screens/MapScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -26,6 +27,7 @@ export type RootStackParamList = {
   MyShops: undefined;
   Profile: undefined;
   CustomerDashboard: undefined;
+  MapScreen: undefined;
   ShopOwnerTabs: undefined;
   CustomerTabs: undefined;
 };
@@ -58,6 +60,16 @@ const CustomerTabNavigator = () => {
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, size }) => (
             <Text style={{ color, fontSize: size }}>🏠</Text>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Map"
+        component={MapScreen}
+        options={{
+          tabBarLabel: 'Map',
+          tabBarIcon: ({ color, size }) => (
+            <Text style={{ color, fontSize: size }}>🗺️</Text>
           ),
         }}
       />
@@ -182,6 +194,7 @@ export const AppNavigator: React.FC = () => {
             <Stack.Screen name="ShopDetail" component={ShopDetailScreen} />
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="CustomerDashboard" component={CustomerDashboard} />
+            <Stack.Screen name="MapScreen" component={MapScreen} />
           </>
         )}
       </Stack.Navigator>
