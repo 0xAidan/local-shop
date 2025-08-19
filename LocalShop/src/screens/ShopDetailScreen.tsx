@@ -17,6 +17,7 @@ import { ProductDetailModal } from '../components/ProductDetailModal';
 import { QuickAddModal } from '../components/QuickAddModal';
 import { MapPreview } from '../components/MapPreview';
 import { ScreenWrapper } from '../components/ScreenWrapper';
+import { useCart } from '../context/CartContext';
 
 interface ShopDetailScreenProps {
   route: {
@@ -29,6 +30,7 @@ interface ShopDetailScreenProps {
 
 export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navigation }) => {
   const { shop } = route.params;
+  const { addToCart } = useCart();
   const [mapVisible, setMapVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productDetailVisible, setProductDetailVisible] = useState(false);
@@ -84,8 +86,7 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
   ];
 
   const handleAddToCart = (product: Product, quantity: number) => {
-    // TODO: Implement actual cart functionality
-    console.log(`Added ${quantity} of ${product.name} to cart`);
+    addToCart(product, quantity);
   };
 
   const handleProductPress = (product: Product) => {

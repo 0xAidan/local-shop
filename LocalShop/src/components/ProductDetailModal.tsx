@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,6 +9,8 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
+import * as Animatable from 'react-native-animatable';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Product } from '../types';
@@ -30,6 +32,16 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onAddToCart,
 }) => {
   const [quantity, setQuantity] = useState(1);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showFullDescription, setShowFullDescription] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setQuantity(1);
+      setSelectedImageIndex(0);
+      setShowFullDescription(false);
+    }
+  }, [visible]);
 
   if (!product) return null;
 
@@ -37,23 +49,148 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     onAddToCart(product, quantity);
     setQuantity(1);
     onClose();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert('Success', `${quantity} ${quantity === 1 ? 'item' : 'items'} added to cart!`);
   };
 
   const increaseQuantity = () => {
     if (quantity < 99) {
       setQuantity(quantity + 1);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
 
   const decreaseQuantity = () => {
     if (quantity > 1) {
       setQuantity(quantity - 1);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
 
-  const primaryImage = product.images?.find(img => img.isPrimary) || product.images?.[0];
+  const images = product.images || [];
+  const currentImage = images[selectedImageIndex] || { url: '', isPrimary: false };
   const totalPrice = product.price * quantity;
+  const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+  const discountPercentage = hasDiscount 
+    ? Math.round(((product.originalPrice! - product.price) / product.originalPrice!) * 100)
+    : 0;
+
+  const renderImageGallery = () => (
+    <Animatable.View animation="fadeIn" duration={500} style={styles.imageContainer}>
+      {currentImage.url ? (
+        <OptimizedImage
+          source={{ uri: currentImage.url }}
+          style={styles.productImage}
+          resizeMode="cover"
+          placeholder="🍅"
+          fallback="❌"
+        />
+      ) : (
+        <View style={styles.imagePlaceholder}>
+          <Text style={styles.imagePlaceholderText}>🍅</Text>
+        </View>
+      )}
+      
+      {images.length > 1 && (
+        <View style={styles.imageIndicators}>
+          {images.map((_, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.imageIndicator,
+                selectedImageIndex === index && styles.activeImageIndicator,
+              ]}
+              onPress={() => {
+                setSelectedImageIndex(index);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+            />
+          ))}
+        </View>
+      )}
+      
+      {hasDiscount && (
+        <View style={styles.discountBadge}>
+          <Text style={styles.discountText}>{discountPercentage}% OFF</Text>
+        </View>
+      )}
+    </Animatable.View>
+  );
+
+  const renderProductInfo = () => (
+    <Animatable.View animation="slideInUp" duration={600} delay={200} style={styles.productInfo}>
+      <View style={styles.productHeader}>
+        <View style={styles.productTitleSection}>
+          <Text style={styles.productName}>{product.name}</Text>
+          {product.averageRating && (
+            <View style={styles.ratingContainer}>
+              {[1, 2, 3, 4, 5].map(star => (
+                <Ionicons
+                  key={star}
+                  name={star <= Math.floor(product.averageRating!) ? 'star' : 'star-outline'}
+                  size={16}
+                  color="#FFD700"
+                />
+              ))}
+              <Text style={styles.ratingText}>
+                {product.averageRating.toFixed(1)} ({product.reviewCount || 0})
+              </Text>
+            </View>
+          )}
+        </View>
+        
+        <View style={styles.priceContainer}>
+          {hasDiscount && (
+            <Text style={styles.originalPrice}>${product.originalPrice!.toFixed(2)}</Text>
+          )}
+          <Text style={styles.currentPrice}>${product.price.toFixed(2)}</Text>
+        </View>
+      </View>
+
+      {product.description && (
+        <View style={styles.descriptionContainer}>
+          <Text 
+            style={styles.productDescription}
+            numberOfLines={showFullDescription ? undefined : 3}
+          >
+            {product.description}
+          </Text>
+          {product.description.length > 100 && (
+            <TouchableOpacity 
+              onPress={() => setShowFullDescription(!showFullDescription)}
+              style={styles.readMoreButton}
+            >
+              <Text style={styles.readMoreText}>
+                {showFullDescription ? 'Show Less' : 'Read More'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {/* Product Tags */}
+      {product.tags && product.tags.length > 0 && (
+        <View style={styles.tagsContainer}>
+          {product.tags.map((tag, index) => (
+            <View key={index} style={styles.tag}>
+              <Text style={styles.tagText}>{tag}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Inventory Info */}
+      <View style={styles.inventoryInfo}>
+        <Ionicons name="cube" size={16} color="#4A90E2" />
+        <Text style={styles.inventoryText}>
+          {product.inventory.quantity > 0 
+            ? `${product.inventory.quantity} ${product.inventory.unit} available`
+            : 'Out of stock'
+          }
+        </Text>
+      </View>
+    </Animatable.View>
+  );
 
   return (
     <Modal
@@ -81,122 +218,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           </View>
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            {/* Product Image */}
-            <View style={styles.imageContainer}>
-              {primaryImage ? (
-                <OptimizedImage
-                  source={{ uri: primaryImage.url }}
-                  style={styles.productImage}
-                  resizeMode="cover"
-                  placeholder="🍅"
-                  fallback="❌"
-                />
-              ) : (
-                <View style={styles.imagePlaceholder}>
-                  <Text style={styles.imagePlaceholderText}>🍅</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Product Info */}
-            <View style={styles.productInfo}>
-              <Text style={styles.productName}>{product.name}</Text>
-              <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
-              
-              {product.description && (
-                <Text style={styles.productDescription}>{product.description}</Text>
-              )}
-
-              {/* Product Details */}
-              <View style={styles.detailsSection}>
-                <Text style={styles.sectionTitle}>Details</Text>
-                
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Category:</Text>
-                  <Text style={styles.detailValue}>{product.category}</Text>
-                </View>
-
-                {product.subcategory && (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Subcategory:</Text>
-                    <Text style={styles.detailValue}>{product.subcategory}</Text>
-                  </View>
-                )}
-
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Availability:</Text>
-                  <Text style={[styles.detailValue, { color: product.isAvailable ? '#4CAF50' : '#F44336' }]}>
-                    {product.isAvailable ? 'In Stock' : 'Out of Stock'}
-                  </Text>
-                </View>
-
-                {product.inventory && (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Stock:</Text>
-                    <Text style={styles.detailValue}>
-                      {product.inventory.isUnlimited ? 'Unlimited' : `${product.inventory.quantity} ${product.inventory.unit}`}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Dietary Information */}
-              {product.dietary && (
-                <View style={styles.detailsSection}>
-                  <Text style={styles.sectionTitle}>Dietary Information</Text>
-                  <View style={styles.dietaryTags}>
-                    {Object.entries(product.dietary).map(([key, value]) => {
-                      if (value) {
-                        const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-                        return (
-                          <View key={key} style={styles.dietaryTag}>
-                            <Text style={styles.dietaryTagText}>{label}</Text>
-                          </View>
-                        );
-                      }
-                      return null;
-                    })}
-                  </View>
-                </View>
-              )}
-
-              {/* Allergens */}
-              {product.allergens && product.allergens.length > 0 && (
-                <View style={styles.detailsSection}>
-                  <Text style={styles.sectionTitle}>Allergens</Text>
-                  <View style={styles.allergenTags}>
-                    {product.allergens.map((allergen, index) => (
-                      <View key={index} style={styles.allergenTag}>
-                        <Text style={styles.allergenTagText}>{allergen}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Origin Information */}
-              {product.origin && (
-                <View style={styles.detailsSection}>
-                  <Text style={styles.sectionTitle}>Origin</Text>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Local:</Text>
-                    <Text style={styles.detailValue}>
-                      {product.origin.isLocal ? 'Yes' : 'No'}
-                    </Text>
-                  </View>
-                  {product.origin.region && (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Region:</Text>
-                      <Text style={styles.detailValue}>{product.origin.region}</Text>
-                    </View>
-                  )}
-                </View>
-              )}
-            </View>
+            {renderImageGallery()}
+            {renderProductInfo()}
           </ScrollView>
 
           {/* Bottom Action Bar */}
-          <View style={styles.bottomBar}>
+          <Animatable.View animation="slideInUp" duration={800} delay={400} style={styles.bottomBar}>
             <View style={styles.quantityContainer}>
               <TouchableOpacity
                 style={styles.quantityButton}
@@ -241,7 +268,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
-          </View>
+          </Animatable.View>
         </LinearGradient>
       </View>
     </Modal>
