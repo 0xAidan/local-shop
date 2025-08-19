@@ -105,9 +105,9 @@ export const ShopMap: React.FC<ShopMapProps> = ({
         )}
 
         {/* Shop markers */}
-        {shops.map((shop) => (
+        {shops.map((shop, index) => (
           <Marker
-            key={shop.id}
+            key={shop.id || shop._id || `shop-${index}`}
             coordinate={{
               latitude: shop.location.coordinates.latitude,
               longitude: shop.location.coordinates.longitude,

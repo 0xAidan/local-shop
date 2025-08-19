@@ -283,7 +283,7 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
               
               <View style={styles.shopsList}>
                 {shops.map((shop) => (
-                  <ShopCard key={shop.id} shop={shop} />
+                  <ShopCard key={shop.id || shop._id || `shop-${shop.name}`} shop={shop} />
                 ))}
               </View>
             </>

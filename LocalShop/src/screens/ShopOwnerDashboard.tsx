@@ -193,7 +193,7 @@ export const ShopOwnerDashboard: React.FC = () => {
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {shops.slice(0, 3).map((shop) => (
                 <TouchableOpacity
-                  key={shop._id}
+                  key={shop._id || shop.id || `shop-${shop.name}`}
                   style={styles.shopCard}
                   onPress={() => navigation.navigate('ShopDetail', { shop })}
                 >

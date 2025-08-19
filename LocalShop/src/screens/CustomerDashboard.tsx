@@ -304,7 +304,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
               ) : (
                 <View style={styles.favoritesList}>
                   {favorites.map((shop) => (
-                    <View key={shop.id} style={styles.favoriteItem}>
+                    <View key={shop.id || shop._id || `favorite-${shop.name}`} style={styles.favoriteItem}>
                       <ShopCard 
                         shop={shop} 
                         onPress={() => handleShopPress(shop)}
@@ -338,7 +338,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
               ) : (
                 <View style={styles.ordersList}>
                   {recentOrders.map((order) => (
-                    <OrderCard key={order.id} order={order} />
+                    <OrderCard key={order.id || order._id || `order-${order.createdAt}`} order={order} />
                   ))}
                 </View>
               )}

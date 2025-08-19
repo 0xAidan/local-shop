@@ -149,7 +149,7 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
           <View style={styles.productsSection}>
             <Text style={styles.sectionTitle}>Products</Text>
             {shopProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id || product._id || `product-${product.name}`} product={product} />
             ))}
           </View>
 
