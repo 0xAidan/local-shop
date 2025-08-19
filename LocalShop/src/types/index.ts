@@ -62,10 +62,11 @@ export interface Product {
   description?: string;
   price: number;
   originalPrice?: number;
-  currency?: string;
+  currency?: string; // Default: CAD
   category: string;
   subcategory?: string;
   shop: string;
+  productType?: 'stock' | 'unique' | 'service'; // New field for product types
   images?: Array<{
     url: string;
     caption?: string;
