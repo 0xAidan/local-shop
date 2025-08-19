@@ -20,7 +20,7 @@ interface ProfileScreenProps {
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, currentViewMode, switchViewMode, canSwitchToShopOwner } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editedUser, setEditedUser] = useState<User | null>(user);
 
@@ -46,6 +46,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           },
         },
       ]
+    );
+  };
+
+  const handleViewModeSwitch = () => {
+    const newMode = currentViewMode === 'customer' ? 'shop_owner' : 'customer';
+    switchViewMode(newMode);
+    Alert.alert(
+      'View Mode Changed',
+      `Switched to ${newMode === 'customer' ? 'Customer' : 'Shop Owner'} view`,
+      [{ text: 'OK' }]
     );
   };
 
@@ -211,6 +221,31 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
               value={editedUser?.username || ''}
             />
           </ProfileSection>
+
+          {/* View Mode Switching - Only for Shop Owners */}
+          {canSwitchToShopOwner() && (
+            <ProfileSection title="App View Mode">
+              <View style={styles.viewModeContainer}>
+                <View style={styles.viewModeInfo}>
+                  <Text style={styles.viewModeTitle}>Current View Mode</Text>
+                  <Text style={styles.viewModeDescription}>
+                    {currentViewMode === 'customer' 
+                      ? 'You are currently viewing the app as a customer. Switch to shop owner mode to manage your shops and products.'
+                      : 'You are currently viewing the app as a shop owner. Switch to customer mode to browse and shop from other stores.'
+                    }
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.viewModeSwitchButton}
+                  onPress={handleViewModeSwitch}
+                >
+                  <Text style={styles.viewModeSwitchText}>
+                    Switch to {currentViewMode === 'customer' ? 'Shop Owner' : 'Customer'} Mode
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ProfileSection>
+          )}
 
           {/* Location */}
           <ProfileSection title="Location">
@@ -425,6 +460,35 @@ const styles = StyleSheet.create({
   },
   preferenceLabel: {
     fontSize: 16,
+    color: '#FFFFFF',
+  },
+  viewModeContainer: {
+    marginBottom: 16,
+  },
+  viewModeInfo: {
+    marginBottom: 16,
+  },
+  viewModeTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  viewModeDescription: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    lineHeight: 20,
+  },
+  viewModeSwitchButton: {
+    backgroundColor: '#4A90E2',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  viewModeSwitchText: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#FFFFFF',
   },
   actionButton: {

@@ -1,10 +1,11 @@
 import React from 'react';
-import { Platform, Dimensions } from 'react-native';
+import { Platform, Dimensions, View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 // Screens
 import { HomeScreen } from '../screens/HomeScreen';
@@ -17,6 +18,8 @@ import { MyShopsScreen } from '../screens/MyShopsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { CustomerDashboard } from '../screens/CustomerDashboard';
 import { MapScreen } from '../screens/MapScreen';
+import { CartScreen } from '../screens/CartScreen';
+import { CheckoutScreen } from '../screens/CheckoutScreen';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -31,6 +34,8 @@ export type RootStackParamList = {
   Profile: undefined;
   CustomerDashboard: undefined;
   MapScreen: undefined;
+  Cart: undefined;
+  Checkout: undefined;
   ShopOwnerTabs: undefined;
   CustomerTabs: undefined;
 };
@@ -40,6 +45,8 @@ const Tab = createBottomTabNavigator();
 
 // Customer Tab Navigator
 const CustomerTabNavigator = () => {
+  const { totalItems } = useCart();
+  
   return (
     <Tab.Navigator
       screenOptions={{
@@ -101,6 +108,45 @@ const CustomerTabNavigator = () => {
               size={24} 
               color={color} 
             />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Cart"
+        component={CartScreen}
+        options={{
+          tabBarLabel: 'Cart',
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ position: 'relative' }}>
+              <Ionicons 
+                name={focused ? 'bag' : 'bag-outline'} 
+                size={24} 
+                color={color} 
+              />
+              {totalItems > 0 && (
+                <View style={{
+                  position: 'absolute',
+                  top: -8,
+                  right: -8,
+                  backgroundColor: '#FF4757',
+                  borderRadius: 10,
+                  minWidth: 20,
+                  height: 20,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderWidth: 2,
+                  borderColor: '#1a1a1a',
+                }}>
+                  <Text style={{
+                    color: '#FFFFFF',
+                    fontSize: 10,
+                    fontWeight: '700',
+                  }}>
+                    {totalItems > 99 ? '99+' : totalItems}
+                  </Text>
+                </View>
+              )}
+            </View>
           ),
         }}
       />
@@ -235,7 +281,7 @@ const ShopOwnerTabNavigator = () => {
 };
 
 export const AppNavigator: React.FC = () => {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, currentViewMode } = useAuth();
 
   if (isLoading) {
     return null; // You can add a loading screen here
@@ -252,7 +298,7 @@ export const AppNavigator: React.FC = () => {
         {!isAuthenticated ? (
           // Authentication screens
           <Stack.Screen name="Login" component={LoginScreen} />
-        ) : user?.role === 'shop_owner' ? (
+        ) : currentViewMode === 'shop_owner' ? (
           // Shop Owner Flow
           <>
             <Stack.Screen name="ShopOwnerTabs" component={ShopOwnerTabNavigator} />
@@ -270,6 +316,8 @@ export const AppNavigator: React.FC = () => {
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="CustomerDashboard" component={CustomerDashboard} />
             <Stack.Screen name="MapScreen" component={MapScreen} />
+            <Stack.Screen name="Cart" component={CartScreen} />
+            <Stack.Screen name="Checkout" component={CheckoutScreen} />
           </>
         )}
       </Stack.Navigator>
