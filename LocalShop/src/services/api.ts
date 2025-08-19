@@ -11,7 +11,7 @@ import {
 
 // Use mock API for testing (set to false to use real backend)
 const USE_MOCK_API = false;
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = 'http://10.0.0.97:3001/api';
 
 // Import mock service
 import { mockApiService } from './mockApi';
@@ -420,7 +420,7 @@ class ApiService {
 
   // Health check
   async healthCheck(): Promise<{ status: string; message: string }> {
-    const response = await fetch(`${API_BASE_URL.replace('/api', '')}/health`);
+    const response = await fetch(`http://10.0.0.97:3001/health`);
     return response.json();
   }
 
