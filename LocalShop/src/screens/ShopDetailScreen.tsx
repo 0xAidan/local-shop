@@ -5,14 +5,18 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
-  Image,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { Shop, Product } from '../types';
 import { ShopLocationMap } from '../components/ShopLocationMap';
 import { OptimizedImage } from '../components/OptimizedImage';
+import { ProductDetailModal } from '../components/ProductDetailModal';
+import { QuickAddModal } from '../components/QuickAddModal';
+import { MapPreview } from '../components/MapPreview';
+import { ScreenWrapper } from '../components/ScreenWrapper';
 
 interface ShopDetailScreenProps {
   route: {
@@ -26,6 +30,9 @@ interface ShopDetailScreenProps {
 export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navigation }) => {
   const { shop } = route.params;
   const [mapVisible, setMapVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productDetailVisible, setProductDetailVisible] = useState(false);
+  const [quickAddVisible, setQuickAddVisible] = useState(false);
 
   // Mock products for this shop
   const shopProducts: Product[] = [
@@ -76,36 +83,71 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
     },
   ];
 
+  const handleAddToCart = (product: Product, quantity: number) => {
+    // TODO: Implement actual cart functionality
+    console.log(`Added ${quantity} of ${product.name} to cart`);
+  };
+
+  const handleProductPress = (product: Product) => {
+    setSelectedProduct(product);
+    setProductDetailVisible(true);
+  };
+
+  const handleQuickAdd = (product: Product) => {
+    setSelectedProduct(product);
+    setQuickAddVisible(true);
+  };
+
   const ProductCard = ({ product }: { product: Product }) => {
     // Get the primary image or first image
     const primaryImage = product.images?.find(img => img.isPrimary) || product.images?.[0];
     
     return (
-      <TouchableOpacity style={styles.productCard}>
-        <View style={styles.productImage}>
-          {primaryImage ? (
-            <OptimizedImage 
-              source={{ uri: primaryImage.url }} 
-              style={styles.productImageActual}
-              resizeMode="cover"
-              placeholder="🍅"
-              fallback="❌"
-            />
-          ) : (
-            <Text style={styles.productImageText}>🍅</Text>
-          )}
-        </View>
-        <View style={styles.productInfo}>
-          <Text style={styles.productName}>{product.name}</Text>
-          <Text style={styles.productDescription}>{product.description}</Text>
-          <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
-        </View>
-      </TouchableOpacity>
+      <View style={styles.productCard}>
+        <TouchableOpacity 
+          style={styles.productCardContent}
+          onPress={() => handleProductPress(product)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.productImage}>
+            {primaryImage ? (
+              <OptimizedImage 
+                source={{ uri: primaryImage.url }} 
+                style={styles.productImageActual}
+                resizeMode="cover"
+                placeholder="🍅"
+                fallback="❌"
+              />
+            ) : (
+              <Text style={styles.productImageText}>🍅</Text>
+            )}
+          </View>
+          <View style={styles.productInfo}>
+            <Text style={styles.productName}>{product.name}</Text>
+            <Text style={styles.productDescription}>{product.description}</Text>
+            <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
+          </View>
+        </TouchableOpacity>
+        
+        {/* Quick Add Button */}
+        <TouchableOpacity
+          style={[styles.quickAddButton, !product.isAvailable && styles.quickAddButtonDisabled]}
+          onPress={() => handleQuickAdd(product)}
+          disabled={!product.isAvailable}
+          activeOpacity={0.8}
+        >
+          <Ionicons 
+            name="add" 
+            size={20} 
+            color={product.isAvailable ? '#FFFFFF' : '#666666'} 
+          />
+        </TouchableOpacity>
+      </View>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
       <LinearGradient
         colors={['#000000', '#1a1a1a']}
@@ -117,7 +159,7 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.backButtonText}>←</Text>
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{shop.name}</Text>
           <View style={styles.headerSpacer} />
@@ -137,13 +179,8 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
             )}
           </View>
 
-          {/* Map Location Button */}
-          <TouchableOpacity 
-            style={styles.mapButton}
-            onPress={() => setMapVisible(true)}
-          >
-            <Text style={styles.mapButtonText}>📍 View on Map</Text>
-          </TouchableOpacity>
+          {/* Map Preview */}
+          <MapPreview shop={shop} height={150} />
 
           {/* Products Section */}
           <View style={styles.productsSection}>
@@ -172,22 +209,33 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
           )}
         </ScrollView>
 
-        {/* Map Modal */}
-        <ShopLocationMap
-          shop={shop}
-          visible={mapVisible}
-          onClose={() => setMapVisible(false)}
+        {/* Product Detail Modal */}
+        <ProductDetailModal
+          product={selectedProduct}
+          visible={productDetailVisible}
+          onClose={() => {
+            setProductDetailVisible(false);
+            setSelectedProduct(null);
+          }}
+          onAddToCart={handleAddToCart}
+        />
+
+        {/* Quick Add Modal */}
+        <QuickAddModal
+          product={selectedProduct}
+          visible={quickAddVisible}
+          onClose={() => {
+            setQuickAddVisible(false);
+            setSelectedProduct(null);
+          }}
+          onAddToCart={handleAddToCart}
         />
       </LinearGradient>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
   gradient: {
     flex: 1,
   },
@@ -257,18 +305,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#CCCCCC',
   },
-  mapButton: {
-    backgroundColor: '#333333',
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  mapButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
+
   productsSection: {
     marginBottom: 30,
   },
@@ -282,8 +319,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#333333',
     borderRadius: 12,
-    padding: 15,
     marginBottom: 12,
+    position: 'relative',
+  },
+  productCardContent: {
+    flex: 1,
+    flexDirection: 'row',
+    padding: 15,
   },
   productImage: {
     width: 60,
@@ -321,6 +363,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFD700',
+  },
+  quickAddButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#4A90E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  quickAddButtonDisabled: {
+    backgroundColor: '#666666',
   },
   ownerSection: {
     marginBottom: 30,
