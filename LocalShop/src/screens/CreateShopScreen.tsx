@@ -20,6 +20,7 @@ import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { apiService } from '../services/api';
 import { ShopFormData } from '../types';
 import { OptimizedImage } from '../components/OptimizedImage';

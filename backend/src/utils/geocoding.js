@@ -7,48 +7,71 @@ const axios = require('axios');
  */
 const geocodeAddress = async (address) => {
   try {
-    if (!process.env.GOOGLE_MAPS_API_KEY) {
-      console.warn('Google Maps API key not configured, using fallback coordinates');
-      // Return fallback coordinates for Canada (Toronto)
-      return {
-        latitude: 43.6532,
-        longitude: -79.3832
-      };
+    // Try Google Maps API first if key is available
+    if (process.env.GOOGLE_MAPS_API_KEY && process.env.GOOGLE_MAPS_API_KEY !== 'your-google-maps-api-key') {
+      console.log('🗺️ Using Google Maps API for geocoding');
+      const response = await axios.get(
+        `https://maps.googleapis.com/maps/api/geocode/json`,
+        {
+          params: {
+            address: address,
+            key: process.env.GOOGLE_MAPS_API_KEY,
+            region: 'ca', // Bias results to Canada
+            components: 'country:CA' // Restrict to Canada
+          }
+        }
+      );
+
+      if (response.data.status === 'OK' && response.data.results.length > 0) {
+        const location = response.data.results[0].geometry.location;
+        console.log(`✅ Google Maps geocoded address "${address}" to coordinates: ${location.lat}, ${location.lng}`);
+        return {
+          latitude: location.lat,
+          longitude: location.lng
+        };
+      } else {
+        console.error('Google Maps geocoding failed:', response.data.status, response.data.error_message);
+      }
     }
 
-    const response = await axios.get(
-      `https://maps.googleapis.com/maps/api/geocode/json`,
+    // Fallback to Nominatim (OpenStreetMap) - free and accurate
+    console.log('🗺️ Using Nominatim (OpenStreetMap) for geocoding');
+    const nominatimResponse = await axios.get(
+      `https://nominatim.openstreetmap.org/search`,
       {
         params: {
-          address: address,
-          key: process.env.GOOGLE_MAPS_API_KEY,
-          region: 'ca', // Bias results to Canada
-          components: 'country:CA' // Restrict to Canada
+          q: address,
+          format: 'json',
+          limit: 1,
+          countrycodes: 'ca', // Restrict to Canada
+          addressdetails: 1
+        },
+        headers: {
+          'User-Agent': 'LocalShop/1.0' // Required by Nominatim
         }
       }
     );
 
-    if (response.data.status === 'OK' && response.data.results.length > 0) {
-      const location = response.data.results[0].geometry.location;
-      console.log(`✅ Geocoded address "${address}" to coordinates: ${location.lat}, ${location.lng}`);
+    if (nominatimResponse.data && nominatimResponse.data.length > 0) {
+      const result = nominatimResponse.data[0];
+      console.log(`✅ Nominatim geocoded address "${address}" to coordinates: ${result.lat}, ${result.lon}`);
       return {
-        latitude: location.lat,
-        longitude: location.lng
+        latitude: parseFloat(result.lat),
+        longitude: parseFloat(result.lon)
       };
-    } else {
-      console.error('Geocoding failed:', response.data.status, response.data.error_message);
-      
-      // Try to extract province from address and provide fallback coordinates
-      const provinceMatch = address.match(/\b(AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT)\b/i);
-      if (provinceMatch) {
-        const province = provinceMatch[0].toUpperCase();
-        const fallbackCoords = getProvinceFallbackCoordinates(province, address);
-        console.log(`⚠️ Using fallback coordinates for ${province}: ${fallbackCoords.latitude}, ${fallbackCoords.longitude}`);
-        return fallbackCoords;
-      }
-      
-      return null;
     }
+
+    // If both services fail, try to extract province and provide fallback coordinates
+    console.log('⚠️ Both geocoding services failed, using fallback coordinates');
+    const provinceMatch = address.match(/\b(AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT)\b/i);
+    if (provinceMatch) {
+      const province = provinceMatch[0].toUpperCase();
+      const fallbackCoords = getProvinceFallbackCoordinates(province, address);
+      console.log(`⚠️ Using fallback coordinates for ${province}: ${fallbackCoords.latitude}, ${fallbackCoords.longitude}`);
+      return fallbackCoords;
+    }
+    
+    return null;
   } catch (error) {
     console.error('Error geocoding address:', error.message);
     
