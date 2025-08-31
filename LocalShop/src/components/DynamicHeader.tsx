@@ -62,6 +62,13 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
     extrapolate: 'clamp',
   });
 
+  // Header background fades out completely
+  const headerBackgroundOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
+    outputRange: [1, 0.5, 0],
+    extrapolate: 'clamp',
+  });
+
   const titleOpacity = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
     outputRange: [1, 0.5, 0],
@@ -86,17 +93,23 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
     extrapolate: 'clamp',
   });
 
-  // Search bar scrolls with user (sticky)
-  const searchBarTranslateY = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [0, -HEADER_SCROLL_DISTANCE + 60], // Keep it visible at top
+  // Search bar fades out completely when scrolled
+  const searchBarOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
+    outputRange: [1, 0.5, 0],
     extrapolate: 'clamp',
   });
 
-  // Category filters shrink to icons
+  // Category filters move to top and shrink to icons
+  const categoryFilterTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [0, -HEADER_SCROLL_DISTANCE + 80], // Move to top of screen
+    extrapolate: 'clamp',
+  });
+
   const categoryFilterScale = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [1, 0.7],
+    outputRange: [1, 0.8],
     extrapolate: 'clamp',
   });
 
@@ -119,10 +132,12 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
 
   return (
     <Animated.View style={[styles.container, { opacity: headerOpacity }]}>
-      <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f3460']}
-        style={styles.background}
-      />
+      <Animated.View style={[styles.background, { opacity: headerBackgroundOpacity }]}>
+        <LinearGradient
+          colors={['#1a1a2e', '#16213e', '#0f3460']}
+          style={styles.gradient}
+        />
+      </Animated.View>
       
       <View style={styles.content}>
         {/* Top Row - Location and Avatar (fade out) */}
@@ -166,11 +181,11 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
           </Animated.Text>
         </Animated.View>
 
-        {/* Search Bar (scrolls with user) */}
+        {/* Search Bar (fades out when scrolled) */}
         <Animated.View 
           style={[
             styles.searchSection, 
-            { transform: [{ translateY: searchBarTranslateY }] }
+            { opacity: searchBarOpacity }
           ]}
         >
           <SearchBar
@@ -180,13 +195,16 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
           />
         </Animated.View>
 
-        {/* Category Filter (shrinks to icons) */}
+        {/* Category Filter (moves to top and shrinks to icons) */}
         <Animated.View 
           style={[
             styles.categorySection, 
             { 
               opacity: categoryFilterOpacity,
-              transform: [{ scale: categoryFilterScale }]
+              transform: [
+                { translateY: categoryFilterTranslateY },
+                { scale: categoryFilterScale }
+              ]
             }
           ]}
         >
@@ -217,6 +235,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e',
   },
   background: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  gradient: {
     ...StyleSheet.absoluteFillObject,
   },
   content: {

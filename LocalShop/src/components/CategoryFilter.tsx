@@ -65,7 +65,10 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          compact && styles.scrollContentCompact
+        ]}
         decelerationRate="fast"
         snapToInterval={100}
       >
@@ -87,14 +90,14 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
                   end={{ x: 1, y: 1 }}
                 >
                   <View style={[styles.categoryIcon, compact && styles.categoryIconCompact]}>
-                    {renderIcon(category, compact ? 18 : 22, '#FFFFFF')}
+                    {renderIcon(category, compact ? 24 : 22, '#FFFFFF')}
                   </View>
                   {!compact && <Text style={styles.categoryNameSelected}>{category.name}</Text>}
                 </LinearGradient>
               ) : (
                 <View style={[styles.categoryButtonInactive, compact && styles.categoryButtonCompact]}>
                   <View style={[styles.categoryIcon, compact && styles.categoryIconCompact]}>
-                    {renderIcon(category, compact ? 18 : 22, 'rgba(255, 255, 255, 0.8)')}
+                    {renderIcon(category, compact ? 24 : 22, 'rgba(255, 255, 255, 0.8)')}
                   </View>
                   {!compact && <Text style={styles.categoryName}>{category.name}</Text>}
                 </View>
@@ -115,20 +118,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 12,
   },
+  scrollContentCompact: {
+    justifyContent: 'space-around',
+    flexGrow: 1,
+  },
   categoryContainer: {
     minWidth: 80,
   },
   categoryButtonCompact: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    minWidth: 50,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    minWidth: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   categoryButtonInactiveCompact: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    minWidth: 50,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    minWidth: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   categoryButton: {
     alignItems: 'center',
@@ -161,7 +174,10 @@ const styles = StyleSheet.create({
   },
   categoryIconCompact: {
     marginBottom: 0,
-    height: 20,
+    height: 28,
+    width: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   categoryName: {
     fontSize: 12,

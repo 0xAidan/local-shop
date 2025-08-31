@@ -263,8 +263,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         <FloatingActionBar
           scrollY={scrollY}
           onSearchPress={handleSearchPress}
-          onFilterPress={handleFilterPress}
-          activeFiltersCount={getActiveFiltersCount()}
         />
 
         {/* Content */}

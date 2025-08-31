@@ -16,8 +16,6 @@ const { width: screenWidth } = Dimensions.get('window');
 interface FloatingActionBarProps {
   scrollY: Animated.Value;
   onSearchPress: () => void;
-  onFilterPress: () => void;
-  activeFiltersCount: number;
 }
 
 const HEADER_MAX_HEIGHT = 280;
@@ -27,8 +25,6 @@ const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 export const FloatingActionBar: React.FC<FloatingActionBarProps> = ({
   scrollY,
   onSearchPress,
-  onFilterPress,
-  activeFiltersCount,
 }) => {
   // Show the floating bar when main elements fade out
   const floatingBarOpacity = scrollY.interpolate({
@@ -66,22 +62,6 @@ export const FloatingActionBar: React.FC<FloatingActionBarProps> = ({
           activeOpacity={0.7}
         >
           <Ionicons name="search" size={20} color="#FFFFFF" />
-        </TouchableOpacity>
-
-        {/* Filter Button with Badge */}
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={onFilterPress}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="filter" size={20} color="#FFFFFF" />
-          {activeFiltersCount > 0 && (
-            <View style={styles.badge}>
-              <Animated.Text style={styles.badgeText}>
-                {activeFiltersCount > 9 ? '9+' : activeFiltersCount}
-              </Animated.Text>
-            </View>
-          )}
         </TouchableOpacity>
       </View>
     </Animated.View>
