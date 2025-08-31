@@ -10,12 +10,22 @@ import {
   Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { apiService } from '../services/api';
 import { Shop, User } from '../types';
 import { RoleSwitcher } from '../components/RoleSwitcher';
 
 const { width } = Dimensions.get('window');
+
+type ShopOwnerStackParamList = {
+  OrderManagement: { shop: Shop };
+  ShopDetail: { shop: Shop };
+  Login: undefined;
+};
+
+type ShopOwnerNavigationProp = StackNavigationProp<ShopOwnerStackParamList>;
 
 export const ShopOwnerDashboard: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -24,7 +34,7 @@ export const ShopOwnerDashboard: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [orderStats, setOrderStats] = useState<any>(null);
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<ShopOwnerNavigationProp>();
 
   const loadData = async () => {
     try {
@@ -39,7 +49,7 @@ export const ShopOwnerDashboard: React.FC = () => {
       if (shopsData.length > 0) {
         try {
           const statsPromises = shopsData.map(shop => 
-            apiService.getShopOrderStats(shop._id || shop.id || '')
+            apiService.getShopOrderStats(String(shop._id || shop.id || ''))
           );
           const statsResults = await Promise.all(statsPromises);
           
@@ -299,7 +309,7 @@ export const ShopOwnerDashboard: React.FC = () => {
                           {shop.isActive ? 'Active' : 'Inactive'}
                         </Text>
                       </View>
-                      {shop.pendingOrders > 0 && (
+                      {shop.pendingOrders && shop.pendingOrders > 0 && (
                         <View style={styles.pendingOrdersBadge}>
                           <Text style={styles.pendingOrdersText}>{shop.pendingOrders}</Text>
                         </View>

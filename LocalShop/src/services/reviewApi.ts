@@ -1,4 +1,4 @@
-import { api } from './api';
+import { apiService } from './api';
 import { Review, ReviewStats } from '../types';
 
 export interface CreateReviewData {
@@ -71,8 +71,9 @@ export interface ShopReviewStatsResponse {
 export const reviewApi = {
   // Create a new review
   createReview: async (data: CreateReviewData): Promise<{ success: boolean; message: string; data: Review }> => {
-    const response = await api.post('/reviews', data);
-    return response.data;
+    // TODO: Implement when API service supports HTTP methods
+    console.log('Review creation not implemented yet');
+    throw new Error('Review creation not implemented yet');
   },
 
   // Get reviews for a shop
@@ -86,15 +87,9 @@ export const reviewApi = {
       sort?: 'newest' | 'oldest' | 'highest' | 'lowest' | 'helpful';
     } = {}
   ): Promise<ShopReviewsResponse> => {
-    const params = new URLSearchParams();
-    if (options.type) params.append('type', options.type);
-    if (options.rating) params.append('rating', options.rating.toString());
-    if (options.page) params.append('page', options.page.toString());
-    if (options.limit) params.append('limit', options.limit.toString());
-    if (options.sort) params.append('sort', options.sort);
-
-    const response = await api.get(`/reviews/shop/${shopId}?${params.toString()}`);
-    return response.data.data;
+    // TODO: Implement when API service supports HTTP methods
+    console.log('Get shop reviews not implemented yet');
+    throw new Error('Get shop reviews not implemented yet');
   },
 
   // Get reviews for a specific product
@@ -106,13 +101,9 @@ export const reviewApi = {
       sort?: 'newest' | 'oldest' | 'highest' | 'lowest' | 'helpful';
     } = {}
   ): Promise<ProductReviewsResponse> => {
-    const params = new URLSearchParams();
-    if (options.page) params.append('page', options.page.toString());
-    if (options.limit) params.append('limit', options.limit.toString());
-    if (options.sort) params.append('sort', options.sort);
-
-    const response = await api.get(`/reviews/product/${productId}?${params.toString()}`);
-    return response.data.data;
+    // TODO: Implement when API service supports HTTP methods
+    console.log('Get product reviews not implemented yet');
+    throw new Error('Get product reviews not implemented yet');
   },
 
   // Get user's reviews
@@ -122,12 +113,9 @@ export const reviewApi = {
       limit?: number;
     } = {}
   ): Promise<UserReviewsResponse> => {
-    const params = new URLSearchParams();
-    if (options.page) params.append('page', options.page.toString());
-    if (options.limit) params.append('limit', options.limit.toString());
-
-    const response = await api.get(`/reviews/my-reviews?${params.toString()}`);
-    return response.data.data;
+    // TODO: Implement when API service supports HTTP methods
+    console.log('Get user reviews not implemented yet');
+    throw new Error('Get user reviews not implemented yet');
   },
 
   // Update a review
@@ -135,22 +123,25 @@ export const reviewApi = {
     reviewId: string,
     data: UpdateReviewData
   ): Promise<{ success: boolean; message: string; data: Review }> => {
-    const response = await api.patch(`/reviews/${reviewId}`, data);
-    return response.data;
+    // TODO: Implement when API service supports HTTP methods
+    console.log('Update review not implemented yet');
+    throw new Error('Update review not implemented yet');
   },
 
   // Delete a review
   deleteReview: async (reviewId: string): Promise<{ success: boolean; message: string }> => {
-    const response = await api.delete(`/reviews/${reviewId}`);
-    return response.data;
+    // TODO: Implement when API service supports HTTP methods
+    console.log('Delete review not implemented yet');
+    throw new Error('Delete review not implemented yet');
   },
 
   // Toggle review content visibility (shop owner only)
   toggleReviewVisibility: async (
     reviewId: string
   ): Promise<{ success: boolean; message: string; data: Review }> => {
-    const response = await api.patch(`/reviews/${reviewId}/toggle-visibility`);
-    return response.data;
+    // TODO: Implement when API service supports HTTP methods
+    console.log('Toggle review visibility not implemented yet');
+    throw new Error('Toggle review visibility not implemented yet');
   },
 
   // Dispute a review (shop owner only)
@@ -158,21 +149,24 @@ export const reviewApi = {
     reviewId: string,
     data: DisputeReviewData
   ): Promise<{ success: boolean; message: string; data: Review }> => {
-    const response = await api.post(`/reviews/${reviewId}/dispute`, data);
-    return response.data;
+    // TODO: Implement when API service supports HTTP methods
+    console.log('Dispute review not implemented yet');
+    throw new Error('Dispute review not implemented yet');
   },
 
-  // Vote helpful on a review
-  voteHelpful: async (
+  // Mark review as helpful
+  markHelpful: async (
     reviewId: string
   ): Promise<{ success: boolean; message: string; data: { helpfulVotes: { count: number; voters: string[] } } }> => {
-    const response = await api.post(`/reviews/${reviewId}/helpful`);
-    return response.data;
+    // TODO: Implement when API service supports HTTP methods
+    console.log('Mark helpful not implemented yet');
+    throw new Error('Mark helpful not implemented yet');
   },
 
   // Get review statistics for a shop (shop owner only)
   getShopReviewStats: async (shopId: string): Promise<ShopReviewStatsResponse> => {
-    const response = await api.get(`/reviews/shop/${shopId}/stats`);
-    return response.data.data;
+    // TODO: Implement when API service supports HTTP methods
+    console.log('Get shop review stats not implemented yet');
+    throw new Error('Get shop review stats not implemented yet');
   }
 }; 

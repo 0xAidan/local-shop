@@ -1,6 +1,6 @@
 export interface Shop {
   _id?: string;
-  id?: number;
+  id?: string | number;
   name: string;
   description?: string;
   category: string;
@@ -35,7 +35,7 @@ export interface Shop {
   }>;
   owner?: {
     _id?: string;
-    id?: number;
+    id?: string | number;
     firstName: string;
     lastName: string;
     username: string;
@@ -51,13 +51,14 @@ export interface Shop {
   tags?: string[];
   features?: string[];
   products?: Product[];
+  pendingOrders?: number;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface Product {
   _id?: string;
-  id?: number;
+  id?: string | number;
   name: string;
   description?: string;
   price: number;
@@ -157,7 +158,7 @@ export interface Category {
 
 export interface User {
   _id?: string;
-  id?: number;
+  id?: string | number;
   username: string;
   email: string;
   firstName: string;
@@ -264,10 +265,21 @@ export interface ReviewStats {
 
 export interface Order {
   _id?: string;
-  id?: number;
+  id?: string | number;
   userId: string;
   shopId: string;
+  customer?: {
+    name: string;
+    email: string;
+    phone?: string;
+  };
   products: Array<{
+    productId: string;
+    quantity: number;
+    price: number;
+    productType?: 'stock' | 'unique' | 'service';
+  }>;
+  items?: Array<{
     productId: string;
     quantity: number;
     price: number;
@@ -280,6 +292,7 @@ export interface Order {
   paymentStatus: 'pending' | 'paid' | 'refunded' | 'partially_refunded';
   pickupLocation: string;
   pickupTime: string;
+  deliveryFee?: number;
   
   // Financial tracking
   financials: {

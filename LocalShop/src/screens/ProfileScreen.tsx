@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import {
-  StyleSheet,
-  Text,
   View,
+  Text,
+  StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TextInput,
+  Switch,
   StatusBar,
   Alert,
-  Switch,
-  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
 import { ScreenWrapper } from '../components/ScreenWrapper';

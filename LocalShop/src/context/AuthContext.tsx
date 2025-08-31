@@ -51,9 +51,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     firstName: 'Dev',
     lastName: 'User',
     role: 'customer',
-    phone: '+1234567890',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    phone: '+1234567890'
   });
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -73,7 +71,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const response = await apiService.login(email, password);
     setUser(response.data.user);
     setIsAuthenticated(true);
-    setCurrentViewMode(response.data.user.role || 'customer');
+    const userRole = response.data.user.role;
+    if (userRole === 'customer' || userRole === 'shop_owner') {
+      setCurrentViewMode(userRole);
+    } else {
+      setCurrentViewMode('customer');
+    }
   };
 
   const register = async (userData: {
@@ -88,7 +91,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const response = await apiService.register(userData);
     setUser(response.data.user);
     setIsAuthenticated(true);
-    setCurrentViewMode(response.data.user.role || 'customer');
+    const userRole = response.data.user.role;
+    if (userRole === 'customer' || userRole === 'shop_owner') {
+      setCurrentViewMode(userRole);
+    } else {
+      setCurrentViewMode('customer');
+    }
   };
 
   const logout = async () => {

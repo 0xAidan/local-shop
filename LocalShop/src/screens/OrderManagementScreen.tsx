@@ -14,6 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { apiService } from '../services/api';
 import { Order, Shop } from '../types';
 import { ScreenWrapper } from '../components/ScreenWrapper';
@@ -21,8 +22,14 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 
 const { width } = Dimensions.get('window');
 
+type OrderManagementStackParamList = {
+  Login: undefined;
+};
+
+type OrderManagementNavigationProp = StackNavigationProp<OrderManagementStackParamList>;
+
 interface OrderManagementScreenProps {
-  navigation: any;
+  navigation: OrderManagementNavigationProp;
 }
 
 interface RouteParams {
@@ -30,7 +37,7 @@ interface RouteParams {
 }
 
 export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<OrderManagementNavigationProp>();
   const route = useRoute();
   const { shop } = route.params as RouteParams;
 
@@ -61,7 +68,7 @@ export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () =>
   const loadOrders = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.getShopOrders(shop._id || shop.id || '', {
+      const response = await apiService.getShopOrders(String(shop._id || shop.id || ''), {
         status: selectedStatus === 'all' ? undefined : selectedStatus,
       });
       setOrders(response.data.orders || []);
@@ -74,7 +81,7 @@ export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () =>
 
   const loadStats = async () => {
     try {
-      const response = await apiService.getShopOrderStats(shop._id || shop.id || '');
+      const response = await apiService.getShopOrderStats(String(shop._id || shop.id || ''));
       setStats(response.data);
     } catch (error) {
       console.error('Failed to load stats:', error);
@@ -119,28 +126,24 @@ export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () =>
   };
 
   const handleRefund = async () => {
-    if (!selectedOrder || !refundAmount || !refundReason) {
+    if (!refundAmount || !refundReason) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
-    const amount = parseFloat(refundAmount);
-    if (isNaN(amount) || amount <= 0 || amount > selectedOrder.total) {
-      Alert.alert('Error', 'Invalid refund amount');
-      return;
-    }
-
     try {
-      await apiService.processRefund(selectedOrder._id || selectedOrder.id || '', {
-        refundAmount: amount,
+      await apiService.processRefund(String(selectedOrder?._id || selectedOrder?.id || ''), {
+        refundAmount: parseFloat(refundAmount),
         reason: refundReason,
       });
-      Alert.alert('Success', 'Refund processed successfully');
+      
       setShowRefundModal(false);
       setRefundAmount('');
       setRefundReason('');
       loadOrders();
       loadStats();
+      
+      Alert.alert('Success', 'Refund processed successfully');
     } catch (error) {
       Alert.alert('Error', 'Failed to process refund');
     }
@@ -204,13 +207,13 @@ export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () =>
       </View>
 
       <View style={styles.orderItems}>
-        {order.items?.slice(0, 2).map((item, index) => (
+        {order.products?.slice(0, 2).map((item, index) => (
           <Text key={index} style={styles.orderItem}>
-            {item.quantity}x {item.name}
+            {item.quantity}x Product #{item.productId}
           </Text>
         ))}
-        {order.items && order.items.length > 2 && (
-          <Text style={styles.moreItems}>+{order.items.length - 2} more items</Text>
+        {order.products && order.products.length > 2 && (
+          <Text style={styles.moreItems}>+{order.products.length - 2} more items</Text>
         )}
       </View>
 
@@ -220,7 +223,7 @@ export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () =>
           {canUpdateStatus(order.status, 'confirmed') && (
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: '#2196F3' }]}
-              onPress={() => handleStatusUpdate(order._id || order.id || '', 'confirmed')}
+              onPress={() => handleStatusUpdate(String(order._id || order.id || ''), 'confirmed')}
             >
               <Text style={styles.actionButtonText}>Confirm</Text>
             </TouchableOpacity>
@@ -228,7 +231,7 @@ export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () =>
           {canUpdateStatus(order.status, 'preparing') && (
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: '#9C27B0' }]}
-              onPress={() => handleStatusUpdate(order._id || order.id || '', 'preparing')}
+              onPress={() => handleStatusUpdate(String(order._id || order.id || ''), 'preparing')}
             >
               <Text style={styles.actionButtonText}>Start Prep</Text>
             </TouchableOpacity>
@@ -236,7 +239,7 @@ export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () =>
           {canUpdateStatus(order.status, 'ready') && (
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: '#4CAF50' }]}
-              onPress={() => handleStatusUpdate(order._id || order.id || '', 'ready')}
+              onPress={() => handleStatusUpdate(String(order._id || order.id || ''), 'ready')}
             >
               <Text style={styles.actionButtonText}>Mark Ready</Text>
             </TouchableOpacity>
@@ -244,7 +247,7 @@ export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () =>
           {canUpdateStatus(order.status, 'completed') && (
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: '#4CAF50' }]}
-              onPress={() => handleStatusUpdate(order._id || order.id || '', 'completed')}
+              onPress={() => handleStatusUpdate(String(order._id || order.id || ''), 'completed')}
             >
               <Text style={styles.actionButtonText}>Complete</Text>
             </TouchableOpacity>
@@ -281,11 +284,11 @@ export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () =>
 
               <View style={styles.modalSection}>
                 <Text style={styles.sectionTitle}>Order Items</Text>
-                {selectedOrder.items?.map((item, index) => (
+                {selectedOrder.products?.map((item, index) => (
                   <View key={index} style={styles.itemRow}>
-                    <Text style={styles.itemName}>{item.name}</Text>
+                    <Text style={styles.itemName}>Product #{item.productId}</Text>
                     <Text style={styles.itemQuantity}>x{item.quantity}</Text>
-                    <Text style={styles.itemPrice}>${item.totalPrice?.toFixed(2)}</Text>
+                    <Text style={styles.itemPrice}>${(item.price * item.quantity).toFixed(2)}</Text>
                   </View>
                 ))}
               </View>

@@ -15,6 +15,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ScreenWrapper } from '../components/ScreenWrapper';
+import { apiService } from '../services/api';
 import * as Haptics from 'expo-haptics';
 
 interface CheckoutScreenProps {
