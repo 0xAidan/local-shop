@@ -264,8 +264,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           scrollY={scrollY}
           onSearchPress={handleSearchPress}
           onFilterPress={handleFilterPress}
-          onLocationPress={handleLocationPress}
-          onProfilePress={handleProfilePress}
           activeFiltersCount={getActiveFiltersCount()}
         />
 
@@ -468,7 +466,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingTop: 280, // Account for dynamic header height
+    paddingTop: 280, // Account for static header height
   },
   scrollContent: {
     paddingBottom: 100, // Account for bottom navigation

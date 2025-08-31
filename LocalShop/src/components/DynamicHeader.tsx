@@ -34,7 +34,7 @@ interface DynamicHeaderProps {
 }
 
 const HEADER_MAX_HEIGHT = 280;
-const HEADER_MIN_HEIGHT = Platform.OS === 'ios' ? 100 : 80;
+const HEADER_MIN_HEIGHT = 160; // Keep main header elements visible
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
@@ -55,34 +55,16 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
     return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
   };
 
-  // Animated values
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
-    extrapolate: 'clamp',
-  });
-
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
-    outputRange: [1, 0.8, 0.6],
-    extrapolate: 'clamp',
-  });
-
-  const titleOpacity = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
-    outputRange: [1, 0.5, 0],
-    extrapolate: 'clamp',
-  });
-
-  const subtitleOpacity = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE / 3, HEADER_SCROLL_DISTANCE / 2],
-    outputRange: [1, 0.3, 0],
-    extrapolate: 'clamp',
-  });
-
+  // Animated values for search and category sections only
   const searchBarOpacity = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
     outputRange: [1, 0.8, 0.4],
+    extrapolate: 'clamp',
+  });
+
+  const searchBarTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [0, -20],
     extrapolate: 'clamp',
   });
 
@@ -92,29 +74,24 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
     extrapolate: 'clamp',
   });
 
-  const avatarScale = scrollY.interpolate({
+  const categoryFilterTranslateY = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [1, 0.8],
-    extrapolate: 'clamp',
-  });
-
-  const locationScale = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [1, 0.9],
+    outputRange: [0, -30],
     extrapolate: 'clamp',
   });
 
   return (
-    <Animated.View style={[styles.container, { height: headerHeight }]}>
+    <View style={styles.container}>
       <LinearGradient
         colors={['#1a1a2e', '#16213e', '#0f3460']}
         style={styles.background}
       />
       
-      <Animated.View style={[styles.content, { opacity: headerOpacity }]}>
-        {/* Top Row - Location and Avatar */}
-        <View style={styles.topRow}>
-          <Animated.View style={{ transform: [{ scale: locationScale }] }}>
+      <View style={styles.content}>
+        {/* Static Header Elements */}
+        <View style={styles.staticHeader}>
+          {/* Top Row - Location and Avatar */}
+          <View style={styles.topRow}>
             <TouchableOpacity 
               style={styles.locationContainer}
               onPress={onLocationPress}
@@ -124,9 +101,7 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
               <Text style={styles.cityName}>{userLocation}</Text>
               <Ionicons name="chevron-down" size={16} color="#CCCCCC" style={styles.chevronIcon} />
             </TouchableOpacity>
-          </Animated.View>
 
-          <Animated.View style={{ transform: [{ scale: avatarScale }] }}>
             <TouchableOpacity 
               style={styles.avatarContainer}
               onPress={onProfilePress}
@@ -142,19 +117,27 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
               </LinearGradient>
               <View style={styles.notificationDot} />
             </TouchableOpacity>
-          </Animated.View>
+          </View>
+
+          {/* Title Section - Always Visible */}
+          <View style={styles.titleSection}>
+            <Text style={styles.title}>Discover Local Shops</Text>
+            <Text style={styles.subtitle}>
+              Find amazing products from artisans in your area
+            </Text>
+          </View>
         </View>
 
-        {/* Title Section */}
-        <Animated.View style={[styles.titleSection, { opacity: titleOpacity }]}>
-          <Text style={styles.title}>Discover Local Shops</Text>
-          <Animated.Text style={[styles.subtitle, { opacity: subtitleOpacity }]}>
-            Find amazing products from artisans in your area
-          </Animated.Text>
-        </Animated.View>
-
-        {/* Search Bar */}
-        <Animated.View style={[styles.searchSection, { opacity: searchBarOpacity }]}>
+        {/* Dynamic Search Bar */}
+        <Animated.View 
+          style={[
+            styles.searchSection, 
+            { 
+              opacity: searchBarOpacity,
+              transform: [{ translateY: searchBarTranslateY }]
+            }
+          ]}
+        >
           <SearchBar
             onSearch={onSearch}
             onFilterChange={onFilterChange}
@@ -162,8 +145,16 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
           />
         </Animated.View>
 
-        {/* Category Filter */}
-        <Animated.View style={[styles.categorySection, { opacity: categoryFilterOpacity }]}>
+        {/* Dynamic Category Filter */}
+        <Animated.View 
+          style={[
+            styles.categorySection, 
+            { 
+              opacity: categoryFilterOpacity,
+              transform: [{ translateY: categoryFilterTranslateY }]
+            }
+          ]}
+        >
           <CategoryFilter
             selectedCategory={selectedCategory}
             onCategorySelect={onCategorySelect}
@@ -174,13 +165,14 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
         <View style={styles.roleSwitcherContainer}>
           <RoleSwitcher />
         </View>
-      </Animated.View>
-    </Animated.View>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    height: HEADER_MAX_HEIGHT,
     position: 'absolute',
     top: 0,
     left: 0,
@@ -195,6 +187,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 20,
     paddingHorizontal: spacing.lg,
+  },
+  staticHeader: {
+    marginBottom: spacing.lg,
   },
   topRow: {
     flexDirection: 'row',

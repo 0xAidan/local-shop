@@ -17,32 +17,28 @@ interface FloatingActionBarProps {
   scrollY: Animated.Value;
   onSearchPress: () => void;
   onFilterPress: () => void;
-  onLocationPress: () => void;
-  onProfilePress: () => void;
   activeFiltersCount: number;
 }
 
 const HEADER_MAX_HEIGHT = 280;
-const HEADER_MIN_HEIGHT = Platform.OS === 'ios' ? 100 : 80;
+const HEADER_MIN_HEIGHT = 160; // Keep main header elements visible
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 export const FloatingActionBar: React.FC<FloatingActionBarProps> = ({
   scrollY,
   onSearchPress,
   onFilterPress,
-  onLocationPress,
-  onProfilePress,
   activeFiltersCount,
 }) => {
-  // Show the floating bar when header is collapsed
+  // Show the floating bar when search and filters are hidden
   const floatingBarOpacity = scrollY.interpolate({
-    inputRange: [HEADER_SCROLL_DISTANCE * 0.8, HEADER_SCROLL_DISTANCE],
+    inputRange: [HEADER_SCROLL_DISTANCE * 0.9, HEADER_SCROLL_DISTANCE],
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
 
   const floatingBarTranslateY = scrollY.interpolate({
-    inputRange: [HEADER_SCROLL_DISTANCE * 0.8, HEADER_SCROLL_DISTANCE],
+    inputRange: [HEADER_SCROLL_DISTANCE * 0.9, HEADER_SCROLL_DISTANCE],
     outputRange: [20, 0],
     extrapolate: 'clamp',
   });
@@ -63,15 +59,6 @@ export const FloatingActionBar: React.FC<FloatingActionBarProps> = ({
       />
       
       <View style={styles.content}>
-        {/* Location Button */}
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={onLocationPress}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="location" size={20} color="#FFFFFF" />
-        </TouchableOpacity>
-
         {/* Search Button */}
         <TouchableOpacity
           style={styles.actionButton}
@@ -95,15 +82,6 @@ export const FloatingActionBar: React.FC<FloatingActionBarProps> = ({
               </Animated.Text>
             </View>
           )}
-        </TouchableOpacity>
-
-        {/* Profile Button */}
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={onProfilePress}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="person" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
     </Animated.View>
