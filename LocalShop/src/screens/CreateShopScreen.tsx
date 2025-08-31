@@ -271,18 +271,30 @@ export const CreateShopScreen: React.FC = () => {
     try {
       const fullAddress = `${formData.location.address}, ${formData.location.city}, ${formData.location.province}, ${formData.location.postalCode}`;
       console.log('📍 Attempting to geocode address:', fullAddress);
+      console.log('📍 Current mapRegion before geocoding:', mapRegion);
+      console.log('📍 Current geocodedCoordinates before geocoding:', geocodedCoordinates);
       
       const coordinates = await apiService.geocodeAddress(fullAddress);
       
+      console.log('📍 Raw coordinates response:', coordinates);
+      
       if (coordinates) {
         console.log('✅ Geocoding successful:', coordinates);
+        console.log('📍 Setting new coordinates:', coordinates);
+        
         setGeocodedCoordinates(coordinates);
-        setMapRegion({
+        
+        const newMapRegion = {
           latitude: coordinates.latitude,
           longitude: coordinates.longitude,
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
-        });
+        };
+        
+        console.log('📍 Setting new mapRegion:', newMapRegion);
+        setMapRegion(newMapRegion);
+        
+        console.log('📍 State updates scheduled');
       } else {
         console.log('❌ Geocoding returned null coordinates');
         setGeocodedCoordinates(null);
@@ -301,6 +313,12 @@ export const CreateShopScreen: React.FC = () => {
       return () => clearTimeout(timeoutId);
     }
   }, [formData.location.address, formData.location.city, formData.location.province, formData.location.postalCode]);
+
+  // Debug useEffect for map state changes
+  useEffect(() => {
+    console.log('🗺️ Map state changed - region:', mapRegion);
+    console.log('🗺️ Map state changed - geocodedCoordinates:', geocodedCoordinates);
+  }, [mapRegion, geocodedCoordinates]);
 
   const validateForm = (): boolean => {
     if (!formData.name.trim()) {
