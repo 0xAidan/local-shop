@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { Shop } from '../types';
 import { apiService } from '../services/api';
+import { RoleSwitcher } from '../components/RoleSwitcher';
 
 interface MyShopsScreenProps {
   navigation: any;
@@ -223,12 +224,17 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>My Shops</Text>
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={handleCreateShop}
-          >
-            <Text style={styles.createButtonText}>+ New Shop</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            {/* Role Switcher - Development Mode */}
+            {/* TODO: Remove this when authentication is re-enabled */}
+            <RoleSwitcher />
+            <TouchableOpacity
+              style={styles.createButton}
+              onPress={handleCreateShop}
+            >
+              <Text style={styles.createButtonText}>+ New Shop</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Content */}
@@ -311,6 +317,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 10,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   headerTitle: {
     fontSize: 24,

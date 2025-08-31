@@ -18,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { apiService } from '../services/api';
 import { ShopFormData } from '../types';
 import { OptimizedImage } from '../components/OptimizedImage';
+import { RoleSwitcher } from '../components/RoleSwitcher';
 
 const SHOP_CATEGORIES = [
   'Grocery',
@@ -245,7 +246,11 @@ export const CreateShopScreen: React.FC = () => {
               <Text style={styles.backButtonText}>← Back</Text>
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Create New Shop</Text>
-            <View style={styles.placeholder} />
+            <View style={styles.headerActions}>
+              {/* Role Switcher - Development Mode */}
+              {/* TODO: Remove this when authentication is re-enabled */}
+              <RoleSwitcher />
+            </View>
           </View>
 
           <View style={styles.content}>
@@ -524,6 +529,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     paddingTop: 60,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   backButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',

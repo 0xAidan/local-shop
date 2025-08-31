@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { apiService } from '../services/api';
 import { Shop, User } from '../types';
+import { RoleSwitcher } from '../components/RoleSwitcher';
 
 const { width } = Dimensions.get('window');
 
@@ -108,9 +109,14 @@ export const ShopOwnerDashboard: React.FC = () => {
             <Text style={styles.welcomeText}>Welcome back,</Text>
             <Text style={styles.userName}>{user?.firstName} {user?.lastName}</Text>
           </View>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            {/* Role Switcher - Development Mode */}
+            {/* TODO: Remove this when authentication is re-enabled */}
+            <RoleSwitcher />
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Stats Cards */}
@@ -276,6 +282,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     paddingTop: 60,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   welcomeText: {
     color: 'white',

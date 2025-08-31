@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
 import { ScreenWrapper } from '../components/ScreenWrapper';
+import { RoleSwitcher } from '../components/RoleSwitcher';
 
 interface ProfileScreenProps {
   navigation: any;
@@ -144,6 +145,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
           <View style={styles.headerActions}>
+            {/* Role Switcher - Development Mode */}
+            {/* TODO: Remove this when authentication is re-enabled */}
+            <RoleSwitcher />
             {isEditing ? (
               <>
                 <TouchableOpacity

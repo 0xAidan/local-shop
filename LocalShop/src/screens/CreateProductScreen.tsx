@@ -19,6 +19,7 @@ import { apiService } from '../services/api';
 import { ProductFormData, Shop } from '../types';
 import { ImageEditor } from '../components/ImageEditor';
 import { OptimizedImage } from '../components/OptimizedImage';
+import { RoleSwitcher } from '../components/RoleSwitcher';
 
 const PRODUCT_CATEGORIES = [
   'Food',
@@ -354,7 +355,11 @@ export const CreateProductScreen: React.FC = () => {
               <Text style={styles.backButtonText}>← Back</Text>
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Add New Product</Text>
-            <View style={styles.placeholder} />
+            <View style={styles.headerActions}>
+              {/* Role Switcher - Development Mode */}
+              {/* TODO: Remove this when authentication is re-enabled */}
+              <RoleSwitcher />
+            </View>
           </View>
 
           <View style={styles.content}>
@@ -701,6 +706,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     paddingTop: 60,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   backButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
