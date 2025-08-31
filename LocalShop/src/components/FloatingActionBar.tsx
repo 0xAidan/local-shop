@@ -30,15 +30,15 @@ export const FloatingActionBar: React.FC<FloatingActionBarProps> = ({
   onFilterPress,
   activeFiltersCount,
 }) => {
-  // Show the floating bar when search and filters are hidden
+  // Show the floating bar when main elements fade out
   const floatingBarOpacity = scrollY.interpolate({
-    inputRange: [HEADER_SCROLL_DISTANCE * 0.9, HEADER_SCROLL_DISTANCE],
+    inputRange: [HEADER_SCROLL_DISTANCE * 0.7, HEADER_SCROLL_DISTANCE],
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
 
   const floatingBarTranslateY = scrollY.interpolate({
-    inputRange: [HEADER_SCROLL_DISTANCE * 0.9, HEADER_SCROLL_DISTANCE],
+    inputRange: [HEADER_SCROLL_DISTANCE * 0.7, HEADER_SCROLL_DISTANCE],
     outputRange: [20, 0],
     extrapolate: 'clamp',
   });

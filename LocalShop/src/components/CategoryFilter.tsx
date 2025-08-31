@@ -24,6 +24,7 @@ interface CategoryFilterProps {
   categories?: Category[];
   selectedCategory: string | null;
   onCategorySelect: (categoryId: string | null) => void;
+  compact?: boolean;
 }
 
 const defaultCategories: Category[] = [
@@ -57,6 +58,7 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   categories = defaultCategories,
   selectedCategory,
   onCategorySelect,
+  compact = false,
 }) => {
   return (
     <View style={styles.container}>
@@ -80,21 +82,21 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
               {isSelected ? (
                 <LinearGradient
                   colors={[category.color, category.color + 'CC']}
-                  style={styles.categoryButton}
+                  style={[styles.categoryButton, compact && styles.categoryButtonCompact]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 >
-                  <View style={styles.categoryIcon}>
-                    {renderIcon(category, 22, '#FFFFFF')}
+                  <View style={[styles.categoryIcon, compact && styles.categoryIconCompact]}>
+                    {renderIcon(category, compact ? 18 : 22, '#FFFFFF')}
                   </View>
-                  <Text style={styles.categoryNameSelected}>{category.name}</Text>
+                  {!compact && <Text style={styles.categoryNameSelected}>{category.name}</Text>}
                 </LinearGradient>
               ) : (
-                <View style={styles.categoryButtonInactive}>
-                  <View style={styles.categoryIcon}>
-                    {renderIcon(category, 22, 'rgba(255, 255, 255, 0.8)')}
+                <View style={[styles.categoryButtonInactive, compact && styles.categoryButtonCompact]}>
+                  <View style={[styles.categoryIcon, compact && styles.categoryIconCompact]}>
+                    {renderIcon(category, compact ? 18 : 22, 'rgba(255, 255, 255, 0.8)')}
                   </View>
-                  <Text style={styles.categoryName}>{category.name}</Text>
+                  {!compact && <Text style={styles.categoryName}>{category.name}</Text>}
                 </View>
               )}
             </TouchableOpacity>
@@ -115,6 +117,18 @@ const styles = StyleSheet.create({
   },
   categoryContainer: {
     minWidth: 80,
+  },
+  categoryButtonCompact: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    minWidth: 50,
+  },
+  categoryButtonInactiveCompact: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    minWidth: 50,
   },
   categoryButton: {
     alignItems: 'center',
@@ -144,6 +158,10 @@ const styles = StyleSheet.create({
     height: 24,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  categoryIconCompact: {
+    marginBottom: 0,
+    height: 20,
   },
   categoryName: {
     fontSize: 12,

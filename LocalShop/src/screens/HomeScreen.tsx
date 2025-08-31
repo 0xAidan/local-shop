@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingTop: 280, // Account for static header height
+    paddingTop: 320, // Account for dynamic header height + extra space for search bar
   },
   scrollContent: {
     paddingBottom: 100, // Account for bottom navigation
