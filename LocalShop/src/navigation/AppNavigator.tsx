@@ -252,12 +252,12 @@ const ShopOwnerTabNavigator = () => {
       />
       <Tab.Screen
         name="Products"
-        component={CreateProductScreen}
+        component={OrderManagementScreen}
         options={{
-          tabBarLabel: 'Products',
+          tabBarLabel: 'Orders',
           tabBarIcon: ({ color, size, focused }) => (
-            <MaterialIcons 
-              name={focused ? 'inventory' : 'inventory'} 
+            <Ionicons 
+              name={focused ? 'receipt' : 'receipt-outline'} 
               size={24} 
               color={color} 
             />

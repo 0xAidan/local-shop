@@ -601,6 +601,33 @@ class ApiService {
   getToken(): string | null {
     return this.token;
   }
+
+  // Geocoding
+  async geocodeAddress(address: string): Promise<{ latitude: number; longitude: number } | null> {
+    try {
+      const response = await this.request<{ latitude: number; longitude: number }>('/geocoding/address', {
+        method: 'POST',
+        body: JSON.stringify({ address }),
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Geocoding failed:', error);
+      return null;
+    }
+  }
+
+  async reverseGeocode(latitude: number, longitude: number): Promise<string | null> {
+    try {
+      const response = await this.request<{ address: string }>('/geocoding/reverse', {
+        method: 'POST',
+        body: JSON.stringify({ latitude, longitude }),
+      });
+      return response.data.address;
+    } catch (error) {
+      console.error('Reverse geocoding failed:', error);
+      return null;
+    }
+  }
 }
 
 export const apiService = new ApiService(); 

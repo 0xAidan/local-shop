@@ -13,7 +13,7 @@ import {
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { apiService } from '../services/api';
 import { ProductFormData, Shop } from '../types';
@@ -46,7 +46,15 @@ const DIETARY_OPTIONS = [
   'Nut-Free',
 ];
 
+interface RouteParams {
+  shopId?: string;
+}
+
 export const CreateProductScreen: React.FC = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { shopId } = route.params as RouteParams;
+
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     description: '',
@@ -54,7 +62,7 @@ export const CreateProductScreen: React.FC = () => {
     originalPrice: 0,
     category: '',
     subcategory: '',
-    shop: '',
+    shop: shopId || '',
     images: [], // Add this field
     inventory: {
       quantity: 0,
@@ -91,8 +99,6 @@ export const CreateProductScreen: React.FC = () => {
   const [editingImage, setEditingImage] = useState<string | null>(null);
   const [imageEditorVisible, setImageEditorVisible] = useState(false);
 
-  const navigation = useNavigation();
-
   useEffect(() => {
     loadUserShops();
   }, []);
@@ -101,7 +107,11 @@ export const CreateProductScreen: React.FC = () => {
     try {
       const userShops = await apiService.getUserShops();
       setShops(userShops);
-      if (userShops.length > 0) {
+      
+      // If shopId is provided and not already set, set it
+      if (shopId && !formData.shop) {
+        setFormData(prev => ({ ...prev, shop: shopId }));
+      } else if (userShops.length > 0 && !formData.shop) {
         setFormData(prev => ({ ...prev, shop: userShops[0]._id || '' }));
       }
     } catch (error) {

@@ -11,14 +11,19 @@ import {
   Platform,
   Switch,
   Image,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
+import { Picker } from '@react-native-picker/picker';
+import MapView, { Marker } from 'react-native-maps';
 import { apiService } from '../services/api';
 import { ShopFormData } from '../types';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { RoleSwitcher } from '../components/RoleSwitcher';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 const SHOP_CATEGORIES = [
   'Grocery',
@@ -31,6 +36,22 @@ const SHOP_CATEGORIES = [
   'Specialty Food',
   'Beverages',
   'Other',
+];
+
+const CANADIAN_PROVINCES = [
+  { code: 'AB', name: 'Alberta' },
+  { code: 'BC', name: 'British Columbia' },
+  { code: 'MB', name: 'Manitoba' },
+  { code: 'NB', name: 'New Brunswick' },
+  { code: 'NL', name: 'Newfoundland and Labrador' },
+  { code: 'NS', name: 'Nova Scotia' },
+  { code: 'NT', name: 'Northwest Territories' },
+  { code: 'NU', name: 'Nunavut' },
+  { code: 'ON', name: 'Ontario' },
+  { code: 'PE', name: 'Prince Edward Island' },
+  { code: 'QC', name: 'Quebec' },
+  { code: 'SK', name: 'Saskatchewan' },
+  { code: 'YT', name: 'Yukon' },
 ];
 
 const SHOP_FEATURES = [
@@ -52,11 +73,12 @@ export const CreateShopScreen: React.FC = () => {
     name: '',
     description: '',
     category: '',
+    logo: undefined,
     location: {
       address: '',
       city: '',
-      state: '',
-      zipCode: '',
+      province: '',
+      postalCode: '',
     },
     contact: {
       phone: '',
@@ -86,6 +108,13 @@ export const CreateShopScreen: React.FC = () => {
     isPrimary?: boolean;
   }>>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 43.6532, // Toronto coordinates as default
+    longitude: -79.3832,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
+  });
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   const navigation = useNavigation();
 
@@ -130,56 +159,118 @@ export const CreateShopScreen: React.FC = () => {
   };
 
   const toggleFeature = (feature: string) => {
-    setSelectedFeatures(prev => {
-      if (prev.includes(feature)) {
-        return prev.filter(f => f !== feature);
-      } else {
-        return [...prev, feature];
-      }
-    });
+    setSelectedFeatures(prev => 
+      prev.includes(feature) 
+        ? prev.filter(f => f !== feature)
+        : [...prev, feature]
+    );
   };
 
-  const pickShopImage = async () => {
+  const uploadShopLogo = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please grant camera roll permissions to upload images.');
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'Permission to access camera roll is required!');
         return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [16, 9], // Better for shop banners
+        aspect: [1, 1],
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets[0]) {
-        await uploadShopImage(result.assets[0].uri);
+        const imageUri = result.assets[0].uri;
+        
+        // Upload to server
+        const uploadedImage = await apiService.uploadImage(imageUri, 'shop-logos');
+        
+        setFormData(prev => ({
+          ...prev,
+          logo: {
+            url: uploadedImage.url,
+            publicId: uploadedImage.publicId,
+          },
+        }));
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to pick image');
+      Alert.alert('Error', 'Failed to upload logo');
     }
   };
 
-  const uploadShopImage = async (imageUri: string) => {
-    setUploadingImages(true);
+  const uploadShopImage = async () => {
     try {
-      const uploadedImage = await apiService.uploadImage(imageUri, 'image');
+      setUploadingImages(true);
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
-      setShopImages(prev => [...prev, {
-        url: uploadedImage.url,
-        caption: '',
-        isPrimary: prev.length === 0, // First image is primary
-      }]);
-      
-      Alert.alert('Success', 'Shop image uploaded successfully!');
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        
+        // Upload to server
+        const uploadedImage = await apiService.uploadImage(imageUri, 'shop-images');
+        
+        setShopImages(prev => [
+          ...prev,
+          {
+            url: uploadedImage.url,
+            caption: '',
+            isPrimary: prev.length === 0, // First image is primary
+          },
+        ]);
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to upload image. Please try again.');
+      Alert.alert('Error', 'Failed to upload image');
     } finally {
       setUploadingImages(false);
     }
   };
+
+  const geocodeAddress = async () => {
+    if (!formData.location.address || !formData.location.city || !formData.location.province) {
+      return;
+    }
+
+    setIsGeocoding(true);
+    try {
+      const fullAddress = `${formData.location.address}, ${formData.location.city}, ${formData.location.province}, ${formData.location.postalCode}`;
+      const coordinates = await apiService.geocodeAddress(fullAddress);
+      
+      if (coordinates) {
+        setMapRegion({
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }
+    } catch (error) {
+      console.log('Geocoding failed:', error);
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  useEffect(() => {
+    if (formData.location.address && formData.location.city && formData.location.province) {
+      const timeoutId = setTimeout(geocodeAddress, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [formData.location.address, formData.location.city, formData.location.province, formData.location.postalCode]);
 
   const validateForm = (): boolean => {
     if (!formData.name.trim()) {
@@ -198,12 +289,12 @@ export const CreateShopScreen: React.FC = () => {
       Alert.alert('Error', 'City is required');
       return false;
     }
-    if (!formData.location.state.trim()) {
-      Alert.alert('Error', 'State is required');
+    if (!formData.location.province) {
+      Alert.alert('Error', 'Province is required');
       return false;
     }
-    if (!formData.location.zipCode.trim()) {
-      Alert.alert('Error', 'ZIP code is required');
+    if (!formData.location.postalCode.trim()) {
+      Alert.alert('Error', 'Postal code is required');
       return false;
     }
     return true;
@@ -217,6 +308,7 @@ export const CreateShopScreen: React.FC = () => {
       const shopData = {
         ...formData,
         features: selectedFeatures,
+        images: shopImages,
       };
 
       await apiService.createShop(shopData);
@@ -232,200 +324,190 @@ export const CreateShopScreen: React.FC = () => {
 
   return (
     <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
-      <KeyboardAvoidingView
+      <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+        style={styles.container}
       >
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Text style={styles.backButtonText}>← Back</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Create New Shop</Text>
-            <View style={styles.headerActions}>
-              {/* Role Switcher - Development Mode */}
-              {/* TODO: Remove this when authentication is re-enabled */}
-              <RoleSwitcher />
-            </View>
-          </View>
-
           <View style={styles.content}>
+            <Text style={styles.title}>Create Your Shop</Text>
+            <Text style={styles.subtitle}>Set up your business profile</Text>
+
             {/* Basic Information */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Basic Information</Text>
               
+              <Text style={styles.label}>Shop Name *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Shop Name *"
-                placeholderTextColor="#999"
                 value={formData.name}
                 onChangeText={(text) => updateFormData('name', text)}
-              />
-
-              <TextInput
-                style={styles.textArea}
-                placeholder="Description (optional)"
+                placeholder="Enter shop name"
                 placeholderTextColor="#999"
-                value={formData.description}
-                onChangeText={(text) => updateFormData('description', text)}
-                multiline
-                numberOfLines={3}
               />
 
               <Text style={styles.label}>Category *</Text>
-              <View style={styles.categoryContainer}>
-                {SHOP_CATEGORIES.map((category) => (
-                  <TouchableOpacity
-                    key={category}
-                    style={[
-                      styles.categoryButton,
-                      formData.category === category && styles.categoryButtonActive,
-                    ]}
-                    onPress={() => updateFormData('category', category)}
-                  >
-                    <Text
-                      style={[
-                        styles.categoryButtonText,
-                        formData.category === category && styles.categoryButtonTextActive,
-                      ]}
-                    >
-                      {category}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={formData.category}
+                  onValueChange={(value) => updateFormData('category', value)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Select Category" value="" />
+                  {SHOP_CATEGORIES.map((category) => (
+                    <Picker.Item key={category} label={category} value={category} />
+                  ))}
+                </Picker>
               </View>
+
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={formData.description}
+                onChangeText={(text) => updateFormData('description', text)}
+                placeholder="Describe your shop..."
+                placeholderTextColor="#999"
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+
+            {/* Shop Logo */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Shop Logo</Text>
+              <TouchableOpacity style={styles.logoUpload} onPress={uploadShopLogo}>
+                {formData.logo ? (
+                  <Image source={{ uri: formData.logo.url }} style={styles.logoPreview} />
+                ) : (
+                  <View style={styles.logoPlaceholder}>
+                    <Text style={styles.logoPlaceholderText}>Upload Logo</Text>
+                    <Text style={styles.logoPlaceholderSubtext}>Tap to add your shop logo</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
             </View>
 
             {/* Location */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Location</Text>
               
+              <Text style={styles.label}>Address *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Street Address *"
-                placeholderTextColor="#999"
                 value={formData.location.address}
                 onChangeText={(text) => updateLocation('address', text)}
+                placeholder="Street address"
+                placeholderTextColor="#999"
               />
 
-              <View style={styles.row}>
-                <TextInput
-                  style={[styles.input, styles.halfInput]}
-                  placeholder="City *"
-                  placeholderTextColor="#999"
-                  value={formData.location.city}
-                  onChangeText={(text) => updateLocation('city', text)}
-                />
-                <TextInput
-                  style={[styles.input, styles.halfInput]}
-                  placeholder="State *"
-                  placeholderTextColor="#999"
-                  value={formData.location.state}
-                  onChangeText={(text) => updateLocation('state', text)}
-                />
-              </View>
-
+              <Text style={styles.label}>City *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="ZIP Code *"
+                value={formData.location.city}
+                onChangeText={(text) => updateLocation('city', text)}
+                placeholder="City"
                 placeholderTextColor="#999"
-                value={formData.location.zipCode}
-                onChangeText={(text) => updateLocation('zipCode', text)}
-                keyboardType="numeric"
               />
+
+              <Text style={styles.label}>Province *</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={formData.location.province}
+                  onValueChange={(value) => updateLocation('province', value)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Select Province" value="" />
+                  {CANADIAN_PROVINCES.map((province) => (
+                    <Picker.Item key={province.code} label={province.name} value={province.code} />
+                  ))}
+                </Picker>
+              </View>
+
+              <Text style={styles.label}>Postal Code *</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.location.postalCode}
+                onChangeText={(text) => updateLocation('postalCode', text.toUpperCase())}
+                placeholder="A1A 1A1"
+                placeholderTextColor="#999"
+                autoCapitalize="characters"
+                maxLength={7}
+              />
+
+              {/* Map Preview */}
+              <Text style={styles.label}>Location Preview</Text>
+              <View style={styles.mapContainer}>
+                <MapView
+                  style={styles.map}
+                  region={mapRegion}
+                  showsUserLocation={false}
+                  showsMyLocationButton={false}
+                >
+                  <Marker
+                    coordinate={{
+                      latitude: mapRegion.latitude,
+                      longitude: mapRegion.longitude,
+                    }}
+                    title={formData.name || 'Shop Location'}
+                    description={formData.location.address}
+                  />
+                </MapView>
+                {isGeocoding && (
+                  <View style={styles.geocodingOverlay}>
+                    <Text style={styles.geocodingText}>Updating location...</Text>
+                  </View>
+                )}
+              </View>
             </View>
 
             {/* Contact Information */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Contact Information</Text>
               
+              <Text style={styles.label}>Phone Number</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Phone Number"
-                placeholderTextColor="#999"
                 value={formData.contact?.phone}
                 onChangeText={(text) => updateContact('phone', text)}
+                placeholder="(555) 123-4567"
+                placeholderTextColor="#999"
                 keyboardType="phone-pad"
               />
 
+              <Text style={styles.label}>Email</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Email"
-                placeholderTextColor="#999"
                 value={formData.contact?.email}
                 onChangeText={(text) => updateContact('email', text)}
+                placeholder="shop@example.com"
+                placeholderTextColor="#999"
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
 
+              <Text style={styles.label}>Website</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Website"
-                placeholderTextColor="#999"
                 value={formData.contact?.website}
                 onChangeText={(text) => updateContact('website', text)}
+                placeholder="https://www.example.com"
+                placeholderTextColor="#999"
                 autoCapitalize="none"
               />
             </View>
 
-            {/* Business Hours */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Business Hours</Text>
-                <Switch
-                  value={showHours}
-                  onValueChange={setShowHours}
-                  trackColor={{ false: '#767577', true: '#667eea' }}
-                  thumbColor={showHours ? '#f4f3f4' : '#f4f3f4'}
-                />
-              </View>
-
-              {showHours && (
-                <View style={styles.hoursContainer}>
-                  {Object.entries(formData.hours || {}).map(([day, hours]) => (
-                    <View key={day} style={styles.hourRow}>
-                      <Text style={styles.dayLabel}>{day.charAt(0).toUpperCase() + day.slice(1)}</Text>
-                      <View style={styles.timeInputs}>
-                        <TextInput
-                          style={styles.timeInput}
-                          placeholder="Open"
-                          placeholderTextColor="#999"
-                          value={hours?.open}
-                          onChangeText={(text) => updateHours(day, 'open', text)}
-                        />
-                        <Text style={styles.timeSeparator}>-</Text>
-                        <TextInput
-                          style={styles.timeInput}
-                          placeholder="Close"
-                          placeholderTextColor="#999"
-                          value={hours?.close}
-                          onChangeText={(text) => updateHours(day, 'close', text)}
-                        />
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-
             {/* Features */}
             <View style={styles.section}>
-              <View style={styles.sectionHeader}>
+              <TouchableOpacity
+                style={styles.sectionHeader}
+                onPress={() => setShowFeatures(!showFeatures)}
+              >
                 <Text style={styles.sectionTitle}>Features</Text>
-                <Switch
-                  value={showFeatures}
-                  onValueChange={setShowFeatures}
-                  trackColor={{ false: '#767577', true: '#667eea' }}
-                  thumbColor={showFeatures ? '#f4f3f4' : '#f4f3f4'}
-                />
-              </View>
-
+                <Text style={styles.toggleText}>{showFeatures ? 'Hide' : 'Show'}</Text>
+              </TouchableOpacity>
+              
               {showFeatures && (
-                <View style={styles.featuresContainer}>
+                <View style={styles.featuresGrid}>
                   {SHOP_FEATURES.map((feature) => (
                     <TouchableOpacity
                       key={feature}
@@ -449,53 +531,6 @@ export const CreateShopScreen: React.FC = () => {
               )}
             </View>
 
-            {/* Shop Images */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Shop Images</Text>
-              
-              <View style={styles.imageUploadContainer}>
-                <TouchableOpacity
-                  style={styles.imageUploadButton}
-                  onPress={pickShopImage}
-                  disabled={uploadingImages}
-                >
-                  <Text style={styles.imageUploadButtonText}>📷 Add Shop Photos</Text>
-                </TouchableOpacity>
-              </View>
-
-              {uploadingImages && (
-                <View style={styles.uploadingContainer}>
-                  <Text style={styles.uploadingText}>Uploading image...</Text>
-                </View>
-              )}
-
-              {/* Display uploaded images */}
-              {shopImages.length > 0 && (
-                <View style={styles.imagesContainer}>
-                  <Text style={styles.label}>Shop Images ({shopImages.length})</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    {shopImages.map((image, index) => (
-                      <View key={`shop-image-${index}-${image.url}`} style={styles.imageContainer}>
-                        <OptimizedImage 
-                          source={{ uri: image.url }} 
-                          style={styles.shopImage}
-                          placeholder="🏪"
-                          fallback="❌"
-                        />
-                        <Text style={styles.imageCaption}>
-                          {image.isPrimary ? 'Primary Image' : `Image ${index + 1}`}
-                        </Text>
-                      </View>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-
-              <Text style={styles.helpText}>
-                Add photos of your shop, products, or storefront to attract customers.
-              </Text>
-            </View>
-
             {/* Submit Button */}
             <TouchableOpacity
               style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
@@ -517,250 +552,166 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  keyboardView: {
-    flex: 1,
-  },
   scrollView: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    paddingTop: 60,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  backButtonText: {
-    color: 'white',
-    fontSize: 14,
-  },
-  headerTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  placeholder: {
-    width: 60,
-  },
   content: {
     padding: 20,
+    paddingBottom: 100,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#E0E0E0',
+    textAlign: 'center',
+    marginBottom: 30,
   },
   section: {
-    backgroundColor: 'white',
-    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 15,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e1e1e1',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    fontSize: 16,
-    backgroundColor: '#f8f9fa',
-  },
-  textArea: {
-    borderWidth: 1,
-    borderColor: '#e1e1e1',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    fontSize: 16,
-    backgroundColor: '#f8f9fa',
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  halfInput: {
-    flex: 1,
+  toggleText: {
+    color: '#4A90E2',
+    fontSize: 14,
+    fontWeight: '500',
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 10,
-  },
-  categoryContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  categoryButton: {
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#e1e1e1',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-  },
-  categoryButtonActive: {
-    backgroundColor: '#667eea',
-    borderColor: '#667eea',
-  },
-  categoryButtonText: {
-    color: '#666',
     fontSize: 14,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    marginBottom: 8,
   },
-  categoryButtonTextActive: {
-    color: 'white',
+  input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 15,
   },
-  hoursContainer: {
-    gap: 10,
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
   },
-  hourRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  pickerContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 8,
+    marginBottom: 15,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
+  },
+  logoUpload: {
     alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    justifyContent: 'center',
+    height: 120,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderStyle: 'dashed',
   },
-  dayLabel: {
+  logoPreview: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  logoPlaceholder: {
+    alignItems: 'center',
+  },
+  logoPlaceholderText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    width: 80,
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
-  timeInputs: {
-    flexDirection: 'row',
+  logoPlaceholderSubtext: {
+    fontSize: 12,
+    color: '#E0E0E0',
+  },
+  mapContainer: {
+    height: 200,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 15,
+    position: 'relative',
+  },
+  map: {
+    flex: 1,
+  },
+  geocodingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
   },
-  timeInput: {
-    borderWidth: 1,
-    borderColor: '#e1e1e1',
-    borderRadius: 8,
-    padding: 8,
-    width: 80,
-    textAlign: 'center',
-    backgroundColor: '#f8f9fa',
+  geocodingText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
   },
-  timeSeparator: {
-    fontSize: 16,
-    color: '#666',
-  },
-  featuresContainer: {
+  featuresGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
   },
   featureButton: {
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#e1e1e1',
-    borderRadius: 20,
-    paddingHorizontal: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 12,
     paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   featureButtonActive: {
-    backgroundColor: '#667eea',
-    borderColor: '#667eea',
+    backgroundColor: '#4A90E2',
+    borderColor: '#4A90E2',
   },
   featureButtonText: {
-    color: '#666',
-    fontSize: 14,
-  },
-  featureButtonTextActive: {
-    color: 'white',
-  },
-  submitButton: {
-    backgroundColor: '#667eea',
-    borderRadius: 15,
-    padding: 18,
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 40,
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  submitButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  imageUploadContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  imageUploadButton: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 15,
-    marginHorizontal: 5,
-    alignItems: 'center',
-  },
-  imageUploadButtonText: {
-    color: '#667eea',
-    fontWeight: '600',
-  },
-  uploadingContainer: {
-    backgroundColor: '#FFF3CD',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
-    alignItems: 'center',
-  },
-  uploadingText: {
-    color: '#856404',
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '500',
   },
-  imagesContainer: {
-    marginBottom: 15,
+  featureButtonTextActive: {
+    color: '#FFFFFF',
   },
-  imageContainer: {
-    marginRight: 15,
+  submitButton: {
+    backgroundColor: '#4A90E2',
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
+    marginTop: 20,
   },
-  shopImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    marginBottom: 8,
+  submitButtonDisabled: {
+    backgroundColor: '#666',
   },
-  imageCaption: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-  },
-  helpText: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
-    textAlign: 'center',
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
   },
 }); 

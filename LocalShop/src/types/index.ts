@@ -4,6 +4,10 @@ export interface Shop {
   name: string;
   description?: string;
   category: string;
+  logo?: {
+    url: string;
+    publicId?: string;
+  };
   location: {
     address: string;
     coordinates: {
@@ -11,8 +15,8 @@ export interface Shop {
       longitude: number;
     };
     city: string;
-    state: string;
-    zipCode: string;
+    province: string;
+    postalCode: string;
   };
   contact?: {
     phone?: string;
@@ -174,8 +178,8 @@ export interface User {
   location?: {
     address?: string;
     city?: string;
-    state?: string;
-    zipCode?: string;
+    province?: string;
+    postalCode?: string;
     coordinates?: {
       latitude: number;
       longitude: number;
@@ -334,11 +338,15 @@ export interface ShopFormData {
   name: string;
   description?: string;
   category: string;
+  logo?: {
+    url: string;
+    publicId?: string;
+  };
   location: {
     address: string;
     city: string;
-    state: string;
-    zipCode: string;
+    province: string;
+    postalCode: string;
   };
   contact?: {
     phone?: string;

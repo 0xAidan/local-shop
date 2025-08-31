@@ -100,6 +100,14 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
     Alert.alert('Edit Shop', `Edit ${shop.name}`);
   };
 
+  const handleAddProduct = (shop: Shop) => {
+    navigation.navigate('CreateProduct', { shopId: shop._id || shop.id });
+  };
+
+  const handleManageOrders = (shop: Shop) => {
+    navigation.navigate('OrderManagement', { shop });
+  };
+
   const handleToggleShopStatus = async (shop: Shop) => {
     try {
       // TODO: Implement API call to toggle shop status
@@ -150,7 +158,7 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
         <View style={styles.shopInfo}>
           <Text style={styles.shopName}>{shop.name}</Text>
           <Text style={styles.shopCategory}>{shop.category}</Text>
-          <Text style={styles.shopLocation}>{shop.location.city}, {shop.location.state}</Text>
+          <Text style={styles.shopLocation}>{shop.location.city}, {shop.location.province}</Text>
         </View>
         <View style={styles.shopStatus}>
           <View style={[styles.statusBadge, { backgroundColor: shop.isActive ? '#10b981' : '#ef4444' }]}>
@@ -189,6 +197,18 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
           onPress={() => handleShopPress(shop)}
         >
           <Text style={styles.actionButtonText}>View</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.addProductButton]}
+          onPress={() => handleAddProduct(shop)}
+        >
+          <Text style={styles.addProductButtonText}>Add Product</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.ordersButton]}
+          onPress={() => handleManageOrders(shop)}
+        >
+          <Text style={styles.ordersButtonText}>Orders</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.editButton]}
@@ -492,6 +512,26 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 12,
     color: '#667eea',
+    fontWeight: '600',
+  },
+  addProductButton: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#667eea',
+  },
+  addProductButtonText: {
+    fontSize: 12,
+    color: '#667eea',
+    fontWeight: '600',
+  },
+  ordersButton: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+  },
+  ordersButtonText: {
+    fontSize: 12,
+    color: '#3b82f6',
     fontWeight: '600',
   },
   editButton: {

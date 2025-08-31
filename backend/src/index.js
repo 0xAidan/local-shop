@@ -14,6 +14,7 @@ const uploadRoutes = require('./routes/upload');
 const orderRoutes = require('./routes/orders');
 const reviewRoutes = require('./routes/reviews');
 const notificationRoutes = require('./routes/notifications');
+const geocodingRoutes = require('./routes/geocoding');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -82,6 +83,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/geocoding', geocodingRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

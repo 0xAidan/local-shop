@@ -3,520 +3,248 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
-  Alert,
   RefreshControl,
-  Dimensions,
-  Modal,
-  TextInput,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons';
 import { apiService } from '../services/api';
 import { Order, Shop } from '../types';
-import { ScreenWrapper } from '../components/ScreenWrapper';
-import { LoadingSpinner } from '../components/LoadingSpinner';
 
-const { width } = Dimensions.get('window');
-
-type OrderManagementStackParamList = {
-  Login: undefined;
-};
-
-type OrderManagementNavigationProp = StackNavigationProp<OrderManagementStackParamList>;
-
-interface OrderManagementScreenProps {
-  navigation: OrderManagementNavigationProp;
+interface OrderWithShop extends Order {
+  shop?: Shop;
 }
 
-interface RouteParams {
-  shop: Shop;
-}
-
-export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () => {
-  const navigation = useNavigation<OrderManagementNavigationProp>();
-  const route = useRoute();
-  const { shop } = route.params as RouteParams;
-
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export const OrderManagementScreen: React.FC = () => {
+  const [orders, setOrders] = useState<OrderWithShop[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [stats, setStats] = useState<any>(null);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [showOrderModal, setShowOrderModal] = useState(false);
-  const [showRefundModal, setShowRefundModal] = useState(false);
-  const [refundAmount, setRefundAmount] = useState('');
-  const [refundReason, setRefundReason] = useState('');
-  const [showCompletionCelebration, setShowCompletionCelebration] = useState(false);
-  const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
+  const [userShops, setUserShops] = useState<Shop[]>([]);
 
-  const statusFilters = [
-    { key: 'all', label: 'All Orders', color: '#667eea' },
-    { key: 'pending', label: 'Pending', color: '#FF9800' },
-    { key: 'confirmed', label: 'Confirmed', color: '#2196F3' },
-    { key: 'preparing', label: 'Preparing', color: '#9C27B0' },
-    { key: 'ready', label: 'Ready', color: '#4CAF50' },
-    { key: 'completed', label: 'Completed', color: '#4CAF50' },
-    { key: 'cancelled', label: 'Cancelled', color: '#F44336' },
-    { key: 'refunded', label: 'Refunded', color: '#795548' },
-  ];
+  useEffect(() => {
+    loadUserShops();
+    loadOrders();
+  }, []);
 
-  const loadOrders = async () => {
+  const loadUserShops = async () => {
     try {
-      setIsLoading(true);
-      const response = await apiService.getShopOrders(String(shop._id || shop.id || ''), {
-        status: selectedStatus === 'all' ? undefined : selectedStatus,
-      });
-      setOrders(response.data.orders || []);
+      const shops = await apiService.getUserShops();
+      setUserShops(shops);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load orders');
-    } finally {
-      setIsLoading(false);
+      console.error('Error loading user shops:', error);
     }
   };
 
-  const loadStats = async () => {
+  const loadOrders = async () => {
     try {
-      const response = await apiService.getShopOrderStats(String(shop._id || shop.id || ''));
-      setStats(response.data);
+      setLoading(true);
+      const allOrders: OrderWithShop[] = [];
+
+      // Load orders for each shop
+      for (const shop of userShops) {
+        try {
+          const response = await apiService.getShopOrders(shop._id!);
+          const shopOrders = response.data.orders.map((order: any) => ({
+            ...order,
+            shop: shop,
+          }));
+          allOrders.push(...shopOrders);
+        } catch (error) {
+          console.error(`Error loading orders for shop ${shop.name}:`, error);
+        }
+      }
+
+      // Sort orders by creation date (most recent first)
+      allOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      setOrders(allOrders);
     } catch (error) {
-      console.error('Failed to load stats:', error);
+      console.error('Error loading orders:', error);
+      Alert.alert('Error', 'Failed to load orders');
+    } finally {
+      setLoading(false);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadOrders(), loadStats()]);
+    await loadUserShops();
+    await loadOrders();
     setRefreshing(false);
   };
 
-  useEffect(() => {
-    loadOrders();
-    loadStats();
-  }, [selectedStatus]);
-
-  const handleStatusUpdate = async (orderId: string, newStatus: string) => {
-    try {
-      await apiService.updateOrderStatus(orderId, newStatus);
-      
-      // Show success notification with different messages based on status
-      let message = `Order status updated to ${newStatus}`;
-      if (newStatus === 'completed') {
-        message = '🎉 Order completed successfully! Customer has been notified.';
-        // Show completion celebration
-        setCompletedOrderId(orderId);
-        setShowCompletionCelebration(true);
-        setTimeout(() => setShowCompletionCelebration(false), 3000);
-      } else if (newStatus === 'ready') {
-        message = '✅ Order is ready for pickup/delivery!';
-      } else if (newStatus === 'preparing') {
-        message = '👨‍🍳 Order preparation started!';
-      }
-      
-      Alert.alert('Success', message);
-      loadOrders();
-      loadStats();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update order status');
-    }
-  };
-
-  const handleRefund = async () => {
-    if (!refundAmount || !refundReason) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-
-    try {
-      await apiService.processRefund(String(selectedOrder?._id || selectedOrder?.id || ''), {
-        refundAmount: parseFloat(refundAmount),
-        reason: refundReason,
-      });
-      
-      setShowRefundModal(false);
-      setRefundAmount('');
-      setRefundReason('');
-      loadOrders();
-      loadStats();
-      
-      Alert.alert('Success', 'Refund processed successfully');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to process refund');
-    }
-  };
-
   const getStatusColor = (status: string) => {
-    const statusConfig = statusFilters.find(s => s.key === status);
-    return statusConfig?.color || '#667eea';
+    switch (status) {
+      case 'pending':
+        return '#FFA500';
+      case 'confirmed':
+        return '#4A90E2';
+      case 'preparing':
+        return '#9B59B6';
+      case 'ready':
+        return '#27AE60';
+      case 'completed':
+        return '#2ECC71';
+      case 'cancelled':
+        return '#E74C3C';
+      case 'refunded':
+        return '#95A5A6';
+      default:
+        return '#95A5A6';
+    }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending': return 'time-outline';
-      case 'confirmed': return 'checkmark-circle-outline';
-      case 'preparing': return 'construct-outline';
-      case 'ready': return 'checkmark-done-circle-outline';
-      case 'completed': return 'checkmark-circle';
-      case 'cancelled': return 'close-circle-outline';
-      case 'refunded': return 'refresh-outline';
-      default: return 'help-outline';
+      case 'pending':
+        return 'time-outline';
+      case 'confirmed':
+        return 'checkmark-circle-outline';
+      case 'preparing':
+        return 'restaurant-outline';
+      case 'ready':
+        return 'checkmark-done-circle-outline';
+      case 'completed':
+        return 'checkmark-done-outline';
+      case 'cancelled':
+        return 'close-circle-outline';
+      case 'refunded':
+        return 'refresh-outline';
+      default:
+        return 'help-circle-outline';
     }
   };
 
-  const canUpdateStatus = (currentStatus: string, newStatus: string) => {
-    const validTransitions: { [key: string]: string[] } = {
-      'pending': ['confirmed', 'cancelled'],
-      'confirmed': ['preparing', 'cancelled'],
-      'preparing': ['ready', 'cancelled'],
-      'ready': ['completed', 'cancelled'],
-      'completed': [],
-      'cancelled': [],
-      'refunded': [],
-    };
-    return validTransitions[currentStatus]?.includes(newStatus) || false;
+  const getDeliveryMethodIcon = (method: string) => {
+    return method === 'delivery' ? 'car-outline' : 'bag-outline';
   };
 
-  const renderOrderCard = (order: Order) => (
-    <TouchableOpacity
-      key={order._id || order.id}
-      style={styles.orderCard}
-      onPress={() => {
-        setSelectedOrder(order);
-        setShowOrderModal(true);
-      }}
-    >
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-CA', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-CA', {
+      style: 'currency',
+      currency: 'CAD',
+    }).format(amount);
+  };
+
+  const renderOrderItem = ({ item }: { item: OrderWithShop }) => (
+    <View style={styles.orderCard}>
       <View style={styles.orderHeader}>
-        <View style={styles.orderInfo}>
-          <Text style={styles.orderNumber}>Order #{order._id?.slice(-8) || order.id}</Text>
-          <Text style={styles.orderDate}>
-            {new Date(order.createdAt).toLocaleDateString()}
+        <View style={styles.shopInfo}>
+          <Text style={styles.shopName}>{item.shop?.name || 'Unknown Shop'}</Text>
+          <Text style={styles.orderId}>Order #{item._id?.slice(-8)}</Text>
+        </View>
+        <View style={styles.statusContainer}>
+          <Ionicons 
+            name={getStatusIcon(item.status) as any} 
+            size={20} 
+            color={getStatusColor(item.status)} 
+          />
+          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
           </Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
-          <Text style={styles.statusText}>{order.status.toUpperCase()}</Text>
+      </View>
+
+      <View style={styles.orderDetails}>
+        <View style={styles.deliveryInfo}>
+          <Ionicons 
+            name={getDeliveryMethodIcon(item.pickupLocation.includes('delivery') ? 'delivery' : 'pickup') as any} 
+            size={16} 
+            color="#666" 
+          />
+          <Text style={styles.deliveryText}>
+            {item.pickupLocation.includes('delivery') ? 'Delivery' : 'Pickup'}
+          </Text>
         </View>
+
+        <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
       </View>
 
-      <View style={styles.customerInfo}>
-        <Text style={styles.customerName}>{order.customer?.name || 'Customer'}</Text>
-        <Text style={styles.customerEmail}>{order.customer?.email}</Text>
-      </View>
-
-      <View style={styles.orderItems}>
-        {order.products?.slice(0, 2).map((item, index) => (
-          <Text key={index} style={styles.orderItem}>
-            {item.quantity}x Product #{item.productId}
+      <View style={styles.itemsContainer}>
+        {item.products?.slice(0, 2).map((product, index) => (
+          <Text key={index} style={styles.itemText}>
+            {product.quantity}x {product.productId} - {formatCurrency(product.price)}
           </Text>
         ))}
-        {order.products && order.products.length > 2 && (
-          <Text style={styles.moreItems}>+{order.products.length - 2} more items</Text>
+        {item.products && item.products.length > 2 && (
+          <Text style={styles.moreItemsText}>
+            +{item.products.length - 2} more items
+          </Text>
         )}
       </View>
 
       <View style={styles.orderFooter}>
-        <Text style={styles.orderTotal}>${order.total?.toFixed(2)}</Text>
-        <View style={styles.orderActions}>
-          {canUpdateStatus(order.status, 'confirmed') && (
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: '#2196F3' }]}
-              onPress={() => handleStatusUpdate(String(order._id || order.id || ''), 'confirmed')}
-            >
-              <Text style={styles.actionButtonText}>Confirm</Text>
-            </TouchableOpacity>
-          )}
-          {canUpdateStatus(order.status, 'preparing') && (
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: '#9C27B0' }]}
-              onPress={() => handleStatusUpdate(String(order._id || order.id || ''), 'preparing')}
-            >
-              <Text style={styles.actionButtonText}>Start Prep</Text>
-            </TouchableOpacity>
-          )}
-          {canUpdateStatus(order.status, 'ready') && (
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: '#4CAF50' }]}
-              onPress={() => handleStatusUpdate(String(order._id || order.id || ''), 'ready')}
-            >
-              <Text style={styles.actionButtonText}>Mark Ready</Text>
-            </TouchableOpacity>
-            )}
-          {canUpdateStatus(order.status, 'completed') && (
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: '#4CAF50' }]}
-              onPress={() => handleStatusUpdate(String(order._id || order.id || ''), 'completed')}
-            >
-              <Text style={styles.actionButtonText}>Complete</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <Text style={styles.totalText}>Total: {formatCurrency(item.total)}</Text>
+        
+        {item.status === 'refunded' && (
+          <View style={styles.refundBadge}>
+            <Ionicons name="refresh-outline" size={14} color="#E74C3C" />
+            <Text style={styles.refundText}>Refunded</Text>
+          </View>
+        )}
       </View>
-    </TouchableOpacity>
+    </View>
   );
 
-  const renderOrderModal = () => (
-    <Modal
-      visible={showOrderModal}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => setShowOrderModal(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Order Details</Text>
-            <TouchableOpacity onPress={() => setShowOrderModal(false)}>
-              <Ionicons name="close" size={24} color="#333" />
-            </TouchableOpacity>
-          </View>
-
-          {selectedOrder && (
-            <ScrollView style={styles.modalBody}>
-              <View style={styles.modalSection}>
-                <Text style={styles.sectionTitle}>Customer Information</Text>
-                <Text style={styles.detailText}>Name: {selectedOrder.customer?.name}</Text>
-                <Text style={styles.detailText}>Email: {selectedOrder.customer?.email}</Text>
-                <Text style={styles.detailText}>Phone: {selectedOrder.customer?.phone || 'N/A'}</Text>
-              </View>
-
-              <View style={styles.modalSection}>
-                <Text style={styles.sectionTitle}>Order Items</Text>
-                {selectedOrder.products?.map((item, index) => (
-                  <View key={index} style={styles.itemRow}>
-                    <Text style={styles.itemName}>Product #{item.productId}</Text>
-                    <Text style={styles.itemQuantity}>x{item.quantity}</Text>
-                    <Text style={styles.itemPrice}>${(item.price * item.quantity).toFixed(2)}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.modalSection}>
-                <Text style={styles.sectionTitle}>Order Summary</Text>
-                <Text style={styles.detailText}>Subtotal: ${selectedOrder.subtotal?.toFixed(2)}</Text>
-                <Text style={styles.detailText}>Tax: ${selectedOrder.tax?.toFixed(2)}</Text>
-                <Text style={styles.detailText}>Delivery: ${selectedOrder.deliveryFee?.toFixed(2)}</Text>
-                <Text style={styles.detailText}>Total: ${selectedOrder.total?.toFixed(2)}</Text>
-              </View>
-
-              <View style={styles.modalSection}>
-                <Text style={styles.sectionTitle}>Actions</Text>
-                <View style={styles.modalActions}>
-                  {selectedOrder.status !== 'refunded' && selectedOrder.status !== 'cancelled' && (
-                    <TouchableOpacity
-                      style={[styles.modalActionButton, { backgroundColor: '#F44336' }]}
-                      onPress={() => {
-                        setShowOrderModal(false);
-                        setShowRefundModal(true);
-                      }}
-                    >
-                      <Text style={styles.modalActionText}>Process Refund</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            </ScrollView>
-          )}
-        </View>
-      </View>
-    </Modal>
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <Ionicons name="receipt-outline" size={64} color="#999" />
+      <Text style={styles.emptyStateTitle}>No Orders Yet</Text>
+      <Text style={styles.emptyStateSubtitle}>
+        Orders from your shops will appear here
+      </Text>
+    </View>
   );
 
-  const renderRefundModal = () => (
-    <Modal
-      visible={showRefundModal}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => setShowRefundModal(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Process Refund</Text>
-            <TouchableOpacity onPress={() => setShowRefundModal(false)}>
-              <Ionicons name="close" size={24} color="#333" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.modalBody}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Refund Amount ($)</Text>
-              <TextInput
-                style={styles.textInput}
-                value={refundAmount}
-                onChangeText={setRefundAmount}
-                placeholder="0.00"
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Reason for Refund</Text>
-              <TextInput
-                style={[styles.textInput, styles.textArea]}
-                value={refundReason}
-                onChangeText={setRefundReason}
-                placeholder="Enter reason for refund"
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalActionButton, { backgroundColor: '#F44336' }]}
-                onPress={handleRefund}
-              >
-                <Text style={styles.modalActionText}>Process Refund</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalActionButton, { backgroundColor: '#9E9E9E' }]}
-                onPress={() => setShowRefundModal(false)}
-              >
-                <Text style={styles.modalActionText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+  if (loading) {
+    return (
+      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text style={styles.loadingText}>Loading orders...</Text>
         </View>
-      </View>
-    </Modal>
-  );
-
-  if (isLoading) {
-    return <LoadingSpinner />;
+      </LinearGradient>
+    );
   }
 
   return (
-    <ScreenWrapper>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color="white" />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Order Management</Text>
-            <Text style={styles.headerSubtitle}>{shop.name}</Text>
-          </View>
-        </View>
+    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Orders</Text>
+        <Text style={styles.subtitle}>Recent orders from your shops</Text>
+      </View>
 
-        {/* Real-time Notifications */}
-        {orders.filter(o => o.status === 'pending').length > 0 && (
-          <View style={styles.notificationBanner}>
-            <Ionicons name="time" size={16} color="white" />
-            <Text style={styles.notificationText}>
-              {orders.filter(o => o.status === 'pending').length} order{orders.filter(o => o.status === 'pending').length > 1 ? 's' : ''} waiting for confirmation
-            </Text>
-          </View>
-        )}
-        
-        {orders.filter(o => o.status === 'ready').length > 0 && (
-          <View style={[styles.notificationBanner, { backgroundColor: '#4CAF50' }]}>
-            <Ionicons name="checkmark-circle" size={16} color="white" />
-            <Text style={styles.notificationText}>
-              {orders.filter(o => o.status === 'ready').length} order{orders.filter(o => o.status === 'ready').length > 1 ? 's' : ''} ready for pickup/delivery
-            </Text>
-          </View>
-        )}
-
-        {/* Stats Overview */}
-        {stats && (
-          <View style={styles.statsContainer}>
-            <View style={styles.statsRow}>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{stats.totals?.totalOrders || 0}</Text>
-                <Text style={styles.statLabel}>Total Orders</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>${(stats.totals?.totalRevenue || 0).toFixed(2)}</Text>
-                <Text style={styles.statLabel}>Total Revenue</Text>
-              </View>
-            </View>
-            <View style={styles.statsRow}>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>${(stats.totals?.avgOrderValue || 0).toFixed(2)}</Text>
-                <Text style={styles.statLabel}>Avg Order</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{orders.filter(o => o.status === 'pending').length}</Text>
-                <Text style={styles.statLabel}>Pending</Text>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Status Filters */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filtersContainer}
-          contentContainerStyle={styles.filtersContent}
-        >
-          {statusFilters.map((filter) => (
-            <TouchableOpacity
-              key={filter.key}
-              style={[
-                styles.filterButton,
-                selectedStatus === filter.key && { backgroundColor: filter.color }
-              ]}
-              onPress={() => setSelectedStatus(filter.key)}
-            >
-              <Text style={[
-                styles.filterText,
-                selectedStatus === filter.key && styles.filterTextActive
-              ]}>
-                {filter.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Orders List */}
-        <ScrollView
-          style={styles.ordersContainer}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          contentContainerStyle={styles.ordersContent}
-        >
-          {orders.length === 0 ? (
-            <View style={styles.emptyState}>
-              <MaterialIcons name="receipt-long" size={64} color="#ccc" />
-              <Text style={styles.emptyTitle}>No orders found</Text>
-              <Text style={styles.emptySubtitle}>
-                {selectedStatus === 'all' 
-                  ? 'Orders will appear here when customers place them'
-                  : `No ${selectedStatus} orders found`
-                }
-              </Text>
-            </View>
-          ) : (
-            orders.map(renderOrderCard)
-          )}
-        </ScrollView>
-
-        {renderOrderModal()}
-        {renderRefundModal()}
-        
-        {/* Completion Celebration Modal */}
-        {showCompletionCelebration && (
-          <View style={styles.celebrationOverlay}>
-            <View style={styles.celebrationContent}>
-              <Text style={styles.celebrationEmoji}>🎉</Text>
-              <Text style={styles.celebrationTitle}>Order Completed!</Text>
-              <Text style={styles.celebrationSubtitle}>
-                Great job! This order has been successfully completed.
-              </Text>
-            </View>
-          </View>
-        )}
-      </LinearGradient>
-    </ScreenWrapper>
+      <FlatList
+        data={orders}
+        renderItem={renderOrderItem}
+        keyExtractor={(item) => item._id || item.id?.toString() || Math.random().toString()}
+        contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FFFFFF"
+            colors={['#FFFFFF']}
+          />
+        }
+        ListEmptyComponent={renderEmptyState}
+        showsVerticalScrollIndicator={false}
+      />
+    </LinearGradient>
   );
 };
 
@@ -525,110 +253,43 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: 20,
     paddingTop: 60,
   },
-  backButton: {
-    marginRight: 15,
-  },
-  headerContent: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 24,
+  title: {
+    fontSize: 28,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#FFFFFF',
+    marginBottom: 8,
   },
-  headerSubtitle: {
+  subtitle: {
     fontSize: 16,
-    color: 'white',
-    opacity: 0.8,
+    color: '#E0E0E0',
   },
-  notificationBanner: {
-    backgroundColor: '#FF9800',
-    flexDirection: 'row',
-    alignItems: 'center',
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    borderRadius: 10,
-    gap: 8,
-  },
-  notificationText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  statsContainer: {
-    padding: 20,
-    paddingTop: 0,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 15,
-    marginBottom: 15,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#667eea',
-    marginBottom: 5,
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginTop: 16,
   },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-  },
-  filtersContainer: {
-    marginBottom: 20,
-  },
-  filtersContent: {
-    paddingHorizontal: 20,
-  },
-  filterButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  filterText: {
-    color: 'white',
-    fontSize: 14,
-  },
-  filterTextActive: {
-    fontWeight: 'bold',
-  },
-  ordersContainer: {
-    flex: 1,
-  },
-  ordersContent: {
+  listContainer: {
     padding: 20,
     paddingTop: 0,
   },
   orderCard: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
@@ -636,54 +297,63 @@ const styles = StyleSheet.create({
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
-  orderInfo: {
+  shopInfo: {
     flex: 1,
   },
-  orderNumber: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  orderDate: {
-    fontSize: 12,
-    color: '#666',
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-  },
-  statusText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  customerInfo: {
-    marginBottom: 15,
-  },
-  customerName: {
-    fontSize: 14,
+  shopName: {
+    fontSize: 18,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  customerEmail: {
+  orderId: {
     fontSize: 12,
     color: '#666',
   },
-  orderItems: {
-    marginBottom: 15,
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(74, 144, 226, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  orderItem: {
+  statusText: {
     fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  orderDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  deliveryInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deliveryText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 4,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#999',
+  },
+  itemsContainer: {
+    marginBottom: 12,
+  },
+  itemText: {
+    fontSize: 14,
     color: '#333',
     marginBottom: 2,
   },
-  moreItems: {
+  moreItemsText: {
     fontSize: 12,
     color: '#666',
     fontStyle: 'italic',
@@ -692,173 +362,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
   },
-  orderTotal: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#667eea',
+  totalText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
   },
-  orderActions: {
+  refundBadge: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  actionButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-  },
-  actionButtonText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
+  refundText: {
+    fontSize: 12,
+    color: '#E74C3C',
+    fontWeight: '500',
+    marginLeft: 4,
   },
   emptyState: {
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#666',
-    marginTop: 15,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-  },
-  modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 60,
   },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    width: width * 0.9,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  modalTitle: {
+  emptyStateTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  modalBody: {
-    padding: 20,
-  },
-  modalSection: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  detailText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginTop: 16,
     marginBottom: 8,
   },
-  itemName: {
-    flex: 1,
+  emptyStateSubtitle: {
     fontSize: 14,
-    color: '#333',
-  },
-  itemQuantity: {
-    fontSize: 14,
-    color: '#666',
-    marginHorizontal: 10,
-  },
-  itemPrice: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  modalActionButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalActionText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  celebrationOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  celebrationContent: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 30,
-    alignItems: 'center',
-    maxWidth: width * 0.8,
-  },
-  celebrationEmoji: {
-    fontSize: 64,
-    marginBottom: 20,
-  },
-  celebrationTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+    color: '#E0E0E0',
     textAlign: 'center',
-  },
-  celebrationSubtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 22,
+    paddingHorizontal: 40,
   },
 }); 

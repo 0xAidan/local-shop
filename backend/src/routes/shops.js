@@ -1,88 +1,66 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Shop = require('../models/Shop');
-const Product = require('../models/Product');
-const { authenticateToken, requireShopOwner, requireShopOwnership } = require('../middleware/auth');
-const { geocodeAddress } = require('../utils/geocoding');
+const { authenticateToken, requireShopOwner } = require('../middleware/auth');
+const { geocodeAddress, reverseGeocode } = require('../utils/geocoding');
 
 const router = express.Router();
 
-// Get all shops (public)
+// Get all shops with filtering and pagination
 router.get('/', async (req, res) => {
   try {
     const {
       page = 1,
-      limit = 10,
+      limit = 20,
       category,
       search,
       lat,
       lng,
-      radius = 10, // miles
-      sort = 'rating',
+      radius = 50, // Default 50km radius
+      sort = 'createdAt',
       order = 'desc'
     } = req.query;
 
     const query = { isActive: true };
-    
+
     // Category filter
     if (category) {
       query.category = category;
     }
-    
+
     // Search filter
     if (search) {
       query.$text = { $search: search };
     }
-    
-    // Location-based filter
+
+    // Location-based filtering
     if (lat && lng) {
-      const coordinates = [parseFloat(lng), parseFloat(lat)];
+      const latitude = parseFloat(lat);
+      const longitude = parseFloat(lng);
+      const radiusInMeters = radius * 1000; // Convert km to meters
+
       query['location.coordinates'] = {
         $near: {
           $geometry: {
             type: 'Point',
-            coordinates: coordinates
+            coordinates: [longitude, latitude]
           },
-          $maxDistance: radius * 1609.34 // Convert miles to meters
+          $maxDistance: radiusInMeters
         }
       };
     }
-    
-    // Sorting
-    let sortOption = {};
-    switch (sort) {
-      case 'rating':
-        sortOption = { 'rating.average': order === 'desc' ? -1 : 1 };
-        break;
-      case 'distance':
-        if (lat && lng) {
-          // Distance sorting is handled by $near in the query
-          sortOption = { 'rating.average': -1 }; // Fallback to rating
-        } else {
-          sortOption = { 'rating.average': -1 };
-        }
-        break;
-      case 'name':
-        sortOption = { name: order === 'desc' ? -1 : 1 };
-        break;
-      case 'created':
-        sortOption = { createdAt: order === 'desc' ? -1 : 1 };
-        break;
-      default:
-        sortOption = { 'rating.average': -1 };
-    }
-    
-    const skip = (page - 1) * limit;
-    
+
+    const sortOptions = {};
+    sortOptions[sort] = order === 'desc' ? -1 : 1;
+
     const shops = await Shop.find(query)
       .populate('owner', 'firstName lastName username avatar')
-      .sort(sortOption)
-      .skip(skip)
+      .sort(sortOptions)
       .limit(parseInt(limit))
-      .select('-__v');
-    
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
     const total = await Shop.countDocuments(query);
-    
+
     res.json({
       success: true,
       data: shops,
@@ -90,38 +68,31 @@ router.get('/', async (req, res) => {
         page: parseInt(page),
         limit: parseInt(limit),
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / parseInt(limit))
       }
     });
   } catch (error) {
     console.error('Error fetching shops:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching shops'
+      message: 'Failed to fetch shops'
     });
   }
 });
 
-// Get shop by ID (public)
+// Get shop by ID
 router.get('/:id', async (req, res) => {
   try {
     const shop = await Shop.findById(req.params.id)
       .populate('owner', 'firstName lastName username avatar');
-    
+
     if (!shop) {
       return res.status(404).json({
         success: false,
         message: 'Shop not found'
       });
     }
-    
-    if (!shop.isActive) {
-      return res.status(404).json({
-        success: false,
-        message: 'Shop is not active'
-      });
-    }
-    
+
     res.json({
       success: true,
       data: shop
@@ -130,7 +101,7 @@ router.get('/:id', async (req, res) => {
     console.error('Error fetching shop:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching shop'
+      message: 'Failed to fetch shop'
     });
   }
 });
@@ -145,8 +116,8 @@ router.post('/',
     body('category').isIn(['Grocery', 'Restaurant', 'Bakery', 'Butcher', 'Fish Market', 'Farmers Market', 'Convenience Store', 'Specialty Food', 'Beverages', 'Other']).withMessage('Invalid category'),
     body('location.address').trim().notEmpty().withMessage('Address is required'),
     body('location.city').trim().notEmpty().withMessage('City is required'),
-    body('location.state').trim().notEmpty().withMessage('State is required'),
-    body('location.zipCode').trim().notEmpty().withMessage('ZIP code is required'),
+    body('location.province').isIn(['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT']).withMessage('Invalid province'),
+    body('location.postalCode').matches(/^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/).withMessage('Invalid postal code format'),
     body('contact.phone').optional().trim(),
     body('contact.email').optional().isEmail().withMessage('Invalid email format'),
     body('contact.website').optional().isURL().withMessage('Invalid website URL'),
@@ -159,38 +130,40 @@ router.post('/',
       if (!errors.isEmpty()) {
         return res.status(400).json({
           success: false,
-          message: 'Validation errors',
+          message: 'Validation failed',
           errors: errors.array()
         });
       }
-      
+
       const {
         name,
         description,
         category,
+        logo,
         location,
         contact,
         hours,
         tags,
-        features
+        features,
+        images
       } = req.body;
-      
+
       // Geocode the address to get coordinates
-      const coordinates = await geocodeAddress(
-        `${location.address}, ${location.city}, ${location.state} ${location.zipCode}`
-      );
-      
+      const fullAddress = `${location.address}, ${location.city}, ${location.province} ${location.postalCode}`;
+      const coordinates = await geocodeAddress(fullAddress);
+
       if (!coordinates) {
         return res.status(400).json({
           success: false,
-          message: 'Could not geocode the provided address'
+          message: 'Could not geocode the provided address. Please check the address and try again.'
         });
       }
-      
+
       const shopData = {
         name,
         description,
         category,
+        logo,
         location: {
           ...location,
           coordinates
@@ -199,18 +172,16 @@ router.post('/',
         hours,
         tags,
         features,
-        owner: req.user._id
+        images,
+        owner: req.user.id
       };
-      
+
       const shop = new Shop(shopData);
       await shop.save();
-      
-      // Add shop to user's shops
-      await req.user.addShop(shop._id);
-      
+
       const populatedShop = await Shop.findById(shop._id)
         .populate('owner', 'firstName lastName username avatar');
-      
+
       res.status(201).json({
         success: true,
         message: 'Shop created successfully',
@@ -220,78 +191,41 @@ router.post('/',
       console.error('Error creating shop:', error);
       res.status(500).json({
         success: false,
-        message: 'Error creating shop'
+        message: 'Failed to create shop'
       });
     }
   }
 );
 
-// Update shop (shop owner only)
-router.put('/:id',
+// Update shop
+router.put('/:id', 
   authenticateToken,
-  requireShopOwnership,
-  [
-    body('name').optional().trim().isLength({ min: 2, max: 100 }).withMessage('Shop name must be between 2 and 100 characters'),
-    body('description').optional().trim().isLength({ max: 500 }).withMessage('Description cannot exceed 500 characters'),
-    body('category').optional().isIn(['Grocery', 'Restaurant', 'Bakery', 'Butcher', 'Fish Market', 'Farmers Market', 'Convenience Store', 'Specialty Food', 'Beverages', 'Other']).withMessage('Invalid category'),
-    body('location.address').optional().trim().notEmpty().withMessage('Address cannot be empty'),
-    body('location.city').optional().trim().notEmpty().withMessage('City cannot be empty'),
-    body('location.state').optional().trim().notEmpty().withMessage('State cannot be empty'),
-    body('location.zipCode').optional().trim().notEmpty().withMessage('ZIP code cannot be empty'),
-    body('contact.phone').optional().trim(),
-    body('contact.email').optional().isEmail().withMessage('Invalid email format'),
-    body('contact.website').optional().isURL().withMessage('Invalid website URL'),
-    body('tags').optional().isArray().withMessage('Tags must be an array'),
-    body('features').optional().isArray().withMessage('Features must be an array')
-  ],
+  requireShopOwner,
   async (req, res) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation errors',
-          errors: errors.array()
-        });
-      }
-      
       const shop = await Shop.findById(req.params.id);
+
       if (!shop) {
         return res.status(404).json({
           success: false,
           message: 'Shop not found'
         });
       }
-      
-      const updateData = { ...req.body };
-      
-      // If location is being updated, geocode the new address
-      if (updateData.location && (
-        updateData.location.address !== shop.location.address ||
-        updateData.location.city !== shop.location.city ||
-        updateData.location.state !== shop.location.state ||
-        updateData.location.zipCode !== shop.location.zipCode
-      )) {
-        const coordinates = await geocodeAddress(
-          `${updateData.location.address}, ${updateData.location.city}, ${updateData.location.state} ${updateData.location.zipCode}`
-        );
-        
-        if (!coordinates) {
-          return res.status(400).json({
-            success: false,
-            message: 'Could not geocode the provided address'
-          });
-        }
-        
-        updateData.location.coordinates = coordinates;
+
+      // Check if user owns this shop
+      if (shop.owner.toString() !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to update this shop'
+        });
       }
-      
+
       const updatedShop = await Shop.findByIdAndUpdate(
         req.params.id,
-        updateData,
+        req.body,
         { new: true, runValidators: true }
       ).populate('owner', 'firstName lastName username avatar');
-      
+
       res.json({
         success: true,
         message: 'Shop updated successfully',
@@ -301,35 +235,37 @@ router.put('/:id',
       console.error('Error updating shop:', error);
       res.status(500).json({
         success: false,
-        message: 'Error updating shop'
+        message: 'Failed to update shop'
       });
     }
   }
 );
 
-// Delete shop (shop owner only)
-router.delete('/:id',
+// Delete shop
+router.delete('/:id', 
   authenticateToken,
-  requireShopOwnership,
+  requireShopOwner,
   async (req, res) => {
     try {
       const shop = await Shop.findById(req.params.id);
+
       if (!shop) {
         return res.status(404).json({
           success: false,
           message: 'Shop not found'
         });
       }
-      
-      // Delete all products associated with this shop
-      await Product.deleteMany({ shop: req.params.id });
-      
-      // Remove shop from user's shops
-      await req.user.removeShop(req.params.id);
-      
-      // Delete the shop
+
+      // Check if user owns this shop
+      if (shop.owner.toString() !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to delete this shop'
+        });
+      }
+
       await Shop.findByIdAndDelete(req.params.id);
-      
+
       res.json({
         success: true,
         message: 'Shop deleted successfully'
@@ -338,65 +274,31 @@ router.delete('/:id',
       console.error('Error deleting shop:', error);
       res.status(500).json({
         success: false,
-        message: 'Error deleting shop'
+        message: 'Failed to delete shop'
       });
     }
   }
 );
 
-// Get shop statistics (shop owner only)
-router.get('/:id/stats',
+// Get shops by owner
+router.get('/user/me', 
   authenticateToken,
-  requireShopOwnership,
+  requireShopOwner,
   async (req, res) => {
     try {
-      const shopId = req.params.id;
-      
-      const [productCount, availableProducts, totalRevenue, averageRating] = await Promise.all([
-        Product.countDocuments({ shop: shopId }),
-        Product.countDocuments({ shop: shopId, isAvailable: true }),
-        // Add revenue calculation when orders are implemented
-        Promise.resolve(0),
-        Shop.findById(shopId).select('rating.average')
-      ]);
-      
-      res.json({
-        success: true,
-        data: {
-          totalProducts: productCount,
-          availableProducts,
-          totalRevenue,
-          averageRating: averageRating?.rating?.average || 0,
-          // Add more stats as needed
-        }
-      });
-    } catch (error) {
-      console.error('Error fetching shop stats:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Error fetching shop statistics'
-      });
-    }
-  }
-);
+      const shops = await Shop.find({ owner: req.user.id })
+        .populate('owner', 'firstName lastName username avatar')
+        .sort({ createdAt: -1 });
 
-// Upload shop images (shop owner only)
-router.post('/:id/images',
-  authenticateToken,
-  requireShopOwnership,
-  async (req, res) => {
-    try {
-      // This will be implemented with multer and cloudinary
-      // For now, just return a placeholder
       res.json({
         success: true,
-        message: 'Image upload endpoint - to be implemented with multer'
+        data: shops
       });
     } catch (error) {
-      console.error('Error uploading images:', error);
+      console.error('Error fetching user shops:', error);
       res.status(500).json({
         success: false,
-        message: 'Error uploading images'
+        message: 'Failed to fetch user shops'
       });
     }
   }

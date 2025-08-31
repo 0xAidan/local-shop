@@ -30,6 +30,17 @@ const shopSchema = new mongoose.Schema({
       'Other'
     ]
   },
+
+  logo: {
+    url: {
+      type: String,
+      trim: true
+    },
+    publicId: {
+      type: String,
+      trim: true
+    }
+  },
   
   location: {
     address: {
@@ -52,15 +63,19 @@ const shopSchema = new mongoose.Schema({
       required: [true, 'City is required'],
       trim: true
     },
-    state: {
+    province: {
       type: String,
-      required: [true, 'State is required'],
-      trim: true
+      required: [true, 'Province is required'],
+      trim: true,
+      enum: [
+        'AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT'
+      ]
     },
-    zipCode: {
+    postalCode: {
       type: String,
-      required: [true, 'ZIP code is required'],
-      trim: true
+      required: [true, 'Postal code is required'],
+      trim: true,
+      match: [/^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/, 'Please enter a valid Canadian postal code']
     }
   },
   
@@ -168,7 +183,7 @@ shopSchema.index({
 
 // Virtual for full address
 shopSchema.virtual('fullAddress').get(function() {
-  return `${this.location.address}, ${this.location.city}, ${this.location.state} ${this.location.zipCode}`;
+  return `${this.location.address}, ${this.location.city}, ${this.location.province} ${this.location.postalCode}`;
 });
 
 // Method to update rating from Review model
