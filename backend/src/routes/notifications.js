@@ -1,40 +1,34 @@
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 // Get all notifications for the authenticated user
-router.get('/', auth, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
-    const { page = 1, limit = 20, unreadOnly = false } = req.query;
     const userId = req.user._id;
+    const { page = 1, limit = 20, type } = req.query;
 
-    let query = { recipient: userId };
-    if (unreadOnly === 'true') {
-      query.isRead = false;
+    const query = { user: userId };
+    if (type) {
+      query.type = type;
     }
 
-    const skip = (page - 1) * limit;
     const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
-      .skip(skip)
       .limit(parseInt(limit))
-      .populate('shop', 'name')
-      .populate('order', 'status total');
+      .skip((parseInt(page) - 1) * parseInt(limit));
 
-    const totalNotifications = await Notification.countDocuments(query);
+    const total = await Notification.countDocuments(query);
 
     res.json({
       success: true,
-      data: {
-        notifications,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(totalNotifications / limit),
-          totalNotifications,
-          hasNext: page * limit < totalNotifications,
-          hasPrev: page > 1
-        }
+      data: notifications,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
       }
     });
   } catch (error) {
@@ -47,12 +41,12 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Get unread notification count
-router.get('/unread-count', auth, async (req, res) => {
+router.get('/unread-count', authenticateToken, async (req, res) => {
   try {
     const userId = req.user._id;
-    const count = await Notification.countDocuments({ 
-      recipient: userId, 
-      isRead: false 
+    const count = await Notification.countDocuments({
+      user: userId,
+      isRead: false
     });
 
     res.json({
@@ -68,13 +62,18 @@ router.get('/unread-count', auth, async (req, res) => {
   }
 });
 
-// Mark a notification as read
-router.patch('/:notificationId/read', auth, async (req, res) => {
+// Mark notification as read
+router.patch('/:notificationId/read', authenticateToken, async (req, res) => {
   try {
     const { notificationId } = req.params;
     const userId = req.user._id;
 
-    const notification = await Notification.markAsRead(notificationId, userId);
+    const notification = await Notification.findOneAndUpdate(
+      { _id: notificationId, user: userId },
+      { isRead: true },
+      { new: true }
+    );
+
     if (!notification) {
       return res.status(404).json({
         success: false,
@@ -84,7 +83,6 @@ router.patch('/:notificationId/read', auth, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Notification marked as read',
       data: notification
     });
   } catch (error) {
@@ -96,35 +94,38 @@ router.patch('/:notificationId/read', auth, async (req, res) => {
   }
 });
 
-// Mark all notifications as read for the user
-router.patch('/mark-all-read', auth, async (req, res) => {
+// Mark all notifications as read
+router.patch('/mark-all-read', authenticateToken, async (req, res) => {
   try {
     const userId = req.user._id;
-    const result = await Notification.markAllAsRead(userId);
+
+    await Notification.updateMany(
+      { user: userId, isRead: false },
+      { isRead: true }
+    );
 
     res.json({
       success: true,
-      message: 'All notifications marked as read',
-      data: { updatedCount: result.modifiedCount }
+      message: 'All notifications marked as read'
     });
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to mark notifications as read'
+      message: 'Failed to mark all notifications as read'
     });
   }
 });
 
-// Delete a notification
-router.delete('/:notificationId', auth, async (req, res) => {
+// Delete notification
+router.delete('/:notificationId', authenticateToken, async (req, res) => {
   try {
     const { notificationId } = req.params;
     const userId = req.user._id;
 
     const notification = await Notification.findOneAndDelete({
       _id: notificationId,
-      recipient: userId
+      user: userId
     });
 
     if (!notification) {

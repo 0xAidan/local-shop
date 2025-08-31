@@ -4,11 +4,11 @@ const Review = require('../models/Review');
 const Order = require('../models/Order');
 const Shop = require('../models/Shop');
 const Product = require('../models/Product');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 const mongoose = require('mongoose');
 
 // Create a new review (customer only)
-router.post('/', auth, async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const { orderId, type, itemId, rating, content, tags, images } = req.body;
     const userId = req.user._id;
@@ -313,7 +313,7 @@ router.get('/product/:productId', async (req, res) => {
 });
 
 // Get user's reviews (authenticated user)
-router.get('/my-reviews', auth, async (req, res) => {
+router.get('/my-reviews', authenticateToken, async (req, res) => {
   try {
     const userId = req.user._id;
     const { page = 1, limit = 20 } = req.query;
@@ -352,7 +352,7 @@ router.get('/my-reviews', auth, async (req, res) => {
 });
 
 // Update review (review owner only)
-router.patch('/:reviewId', auth, async (req, res) => {
+router.patch('/:reviewId', authenticateToken, async (req, res) => {
   try {
     const { reviewId } = req.params;
     const { rating, content, tags, images } = req.body;
@@ -438,7 +438,7 @@ router.patch('/:reviewId', auth, async (req, res) => {
 });
 
 // Delete review (review owner only)
-router.delete('/:reviewId', auth, async (req, res) => {
+router.delete('/:reviewId', authenticateToken, async (req, res) => {
   try {
     const { reviewId } = req.params;
     const userId = req.user._id;
@@ -498,7 +498,7 @@ router.delete('/:reviewId', auth, async (req, res) => {
 });
 
 // Toggle review content visibility (shop owner only)
-router.patch('/:reviewId/toggle-visibility', auth, async (req, res) => {
+router.patch('/:reviewId/toggle-visibility', authenticateToken, async (req, res) => {
   try {
     const { reviewId } = req.params;
     const userId = req.user._id;
@@ -537,7 +537,7 @@ router.patch('/:reviewId/toggle-visibility', auth, async (req, res) => {
 });
 
 // Dispute review (shop owner only)
-router.post('/:reviewId/dispute', auth, async (req, res) => {
+router.post('/:reviewId/dispute', authenticateToken, async (req, res) => {
   try {
     const { reviewId } = req.params;
     const { reason, description } = req.body;
@@ -592,7 +592,7 @@ router.post('/:reviewId/dispute', auth, async (req, res) => {
 });
 
 // Vote helpful on review (authenticated user)
-router.post('/:reviewId/helpful', auth, async (req, res) => {
+router.post('/:reviewId/helpful', authenticateToken, async (req, res) => {
   try {
     const { reviewId } = req.params;
     const userId = req.user._id;
@@ -633,7 +633,7 @@ router.post('/:reviewId/helpful', auth, async (req, res) => {
 });
 
 // Get review statistics for a shop (shop owner only)
-router.get('/shop/:shopId/stats', auth, async (req, res) => {
+router.get('/shop/:shopId/stats', authenticateToken, async (req, res) => {
   try {
     const { shopId } = req.params;
     const userId = req.user._id;

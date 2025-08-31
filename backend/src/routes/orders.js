@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 const Notification = require('../models/Notification');
 
 // Create a new order
-router.post('/', auth, async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const { shopId, items, delivery, payment } = req.body;
     const user = req.user;
@@ -142,7 +142,7 @@ router.post('/', auth, async (req, res) => {
 const mongoose = require('mongoose');
 
 // Get all orders for a shop (shop owner only)
-router.get('/shop/:shopId', auth, async (req, res) => {
+router.get('/shop/:shopId', authenticateToken, async (req, res) => {
   try {
     const { shopId } = req.params;
     const { status, startDate, endDate, page = 1, limit = 20 } = req.query;
@@ -203,7 +203,7 @@ router.get('/shop/:shopId', auth, async (req, res) => {
 });
 
 // Get a specific order by ID
-router.get('/:orderId', auth, async (req, res) => {
+router.get('/:orderId', authenticateToken, async (req, res) => {
   try {
     const { orderId } = req.params;
     const order = await Order.findById(orderId)
@@ -244,7 +244,7 @@ router.get('/:orderId', auth, async (req, res) => {
 });
 
 // Update order status (shop owner only)
-router.patch('/:orderId/status', auth, async (req, res) => {
+router.patch('/:orderId/status', authenticateToken, async (req, res) => {
   try {
     const { orderId } = req.params;
     const { status, notes } = req.body;
@@ -322,7 +322,7 @@ router.patch('/:orderId/status', auth, async (req, res) => {
 });
 
 // Process refund (shop owner only)
-router.post('/:orderId/refund', auth, async (req, res) => {
+router.post('/:orderId/refund', authenticateToken, async (req, res) => {
   try {
     const { orderId } = req.params;
     const { refundAmount, reason, items } = req.body;
@@ -405,7 +405,7 @@ router.post('/:orderId/refund', auth, async (req, res) => {
 });
 
 // Get order statistics for a shop
-router.get('/shop/:shopId/stats', auth, async (req, res) => {
+router.get('/shop/:shopId/stats', authenticateToken, async (req, res) => {
   try {
     const { shopId } = req.params;
     const { period = '30days' } = req.query;

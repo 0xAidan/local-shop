@@ -612,7 +612,14 @@ class ApiService {
       return response.data;
     } catch (error) {
       console.error('Geocoding failed:', error);
-      return null;
+      // Try fallback to mock API
+      try {
+        console.log('🔄 Trying mock API fallback for geocoding...');
+        return await this.getApiService().geocodeAddress(address);
+      } catch (fallbackError) {
+        console.error('Mock API fallback also failed:', fallbackError);
+        return null;
+      }
     }
   }
 
@@ -625,7 +632,14 @@ class ApiService {
       return response.data.address;
     } catch (error) {
       console.error('Reverse geocoding failed:', error);
-      return null;
+      // Try fallback to mock API
+      try {
+        console.log('🔄 Trying mock API fallback for reverse geocoding...');
+        return await this.getApiService().reverseGeocode(latitude, longitude);
+      } catch (fallbackError) {
+        console.error('Mock API fallback also failed:', fallbackError);
+        return null;
+      }
     }
   }
 }

@@ -259,15 +259,23 @@ export const CreateShopScreen: React.FC = () => {
 
   const geocodeAddress = async () => {
     if (!formData.location.address || !formData.location.city || !formData.location.province) {
+      console.log('📍 Geocoding skipped: Missing required fields', {
+        address: formData.location.address,
+        city: formData.location.city,
+        province: formData.location.province
+      });
       return;
     }
 
     setIsGeocoding(true);
     try {
       const fullAddress = `${formData.location.address}, ${formData.location.city}, ${formData.location.province}, ${formData.location.postalCode}`;
+      console.log('📍 Attempting to geocode address:', fullAddress);
+      
       const coordinates = await apiService.geocodeAddress(fullAddress);
       
       if (coordinates) {
+        console.log('✅ Geocoding successful:', coordinates);
         setGeocodedCoordinates(coordinates);
         setMapRegion({
           latitude: coordinates.latitude,
@@ -275,9 +283,13 @@ export const CreateShopScreen: React.FC = () => {
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         });
+      } else {
+        console.log('❌ Geocoding returned null coordinates');
+        setGeocodedCoordinates(null);
       }
     } catch (error) {
-      console.log('Geocoding failed:', error);
+      console.error('❌ Geocoding failed with error:', error);
+      setGeocodedCoordinates(null);
     } finally {
       setIsGeocoding(false);
     }

@@ -683,6 +683,47 @@ class MockApiService {
   getToken(): string | null {
     return this.token;
   }
+
+  // Geocoding (mock implementation)
+  async geocodeAddress(address: string): Promise<{ latitude: number; longitude: number } | null> {
+    await this.delay();
+    
+    // Mock geocoding - extract province and return coordinates for that province
+    const provinceMatch = address.match(/\b(AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT)\b/i);
+    if (provinceMatch) {
+      const province = provinceMatch[0].toUpperCase();
+      const provinceCoords = {
+        'AB': { latitude: 53.9333, longitude: -116.5765 }, // Edmonton
+        'BC': { latitude: 49.2827, longitude: -123.1207 }, // Vancouver
+        'MB': { latitude: 49.8951, longitude: -97.1384 }, // Winnipeg
+        'NB': { latitude: 45.9636, longitude: -66.6431 }, // Fredericton
+        'NL': { latitude: 47.5615, longitude: -52.7126 }, // St. John's
+        'NS': { latitude: 44.6488, longitude: -63.5752 }, // Halifax
+        'NT': { latitude: 62.4540, longitude: -114.3718 }, // Yellowknife
+        'NU': { latitude: 63.7467, longitude: -68.5170 }, // Iqaluit
+        'ON': { latitude: 43.6532, longitude: -79.3832 }, // Toronto
+        'PE': { latitude: 46.2382, longitude: -63.1311 }, // Charlottetown
+        'QC': { latitude: 45.5017, longitude: -73.5673 }, // Montreal
+        'SK': { latitude: 50.4452, longitude: -104.6189 }, // Regina
+        'YT': { latitude: 60.7212, longitude: -135.0568 }, // Whitehorse
+      };
+      
+      console.log(`🗺️ Mock geocoding: "${address}" -> ${province} (${provinceCoords[province].latitude}, ${provinceCoords[province].longitude})`);
+      return provinceCoords[province];
+    }
+    
+    // Default to Toronto if no province found
+    console.log(`🗺️ Mock geocoding: "${address}" -> Default (Toronto)`);
+    return { latitude: 43.6532, longitude: -79.3832 };
+  }
+
+  async reverseGeocode(latitude: number, longitude: number): Promise<string | null> {
+    await this.delay();
+    
+    // Mock reverse geocoding
+    console.log(`🗺️ Mock reverse geocoding: (${latitude}, ${longitude}) -> "Mock Address"`);
+    return 'Mock Address, Toronto, ON, Canada';
+  }
 }
 
 export const mockApiService = new MockApiService(); 
