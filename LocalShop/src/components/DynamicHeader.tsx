@@ -62,13 +62,6 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
     extrapolate: 'clamp',
   });
 
-  // Header background fades out completely
-  const headerBackgroundOpacity = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
-    outputRange: [1, 0.5, 0],
-    extrapolate: 'clamp',
-  });
-
   const titleOpacity = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
     outputRange: [1, 0.5, 0],
@@ -119,7 +112,7 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
     extrapolate: 'clamp',
   });
 
-  // Determine if category filter should be compact (simplified)
+  // Determine if category filter should be compact
   const [isCompact, setIsCompact] = useState(false);
   
   useEffect(() => {
@@ -131,8 +124,9 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
   }, [scrollY]);
 
   return (
-    <Animated.View style={[styles.container, { opacity: headerOpacity }]}>
-      <Animated.View style={[styles.background, { opacity: headerBackgroundOpacity }]}>
+    <View style={styles.container}>
+      {/* Only show background when not scrolled */}
+      <Animated.View style={[styles.background, { opacity: headerOpacity }]}>
         <LinearGradient
           colors={['#1a1a2e', '#16213e', '#0f3460']}
           style={styles.gradient}
@@ -212,6 +206,7 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
             selectedCategory={selectedCategory}
             onCategorySelect={onCategorySelect}
             compact={isCompact}
+            onSearchPress={onSearch}
           />
         </Animated.View>
 
@@ -220,7 +215,7 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
           <RoleSwitcher />
         </View>
       </View>
-    </Animated.View>
+    </View>
   );
 };
 
@@ -232,7 +227,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
-    backgroundColor: '#1a1a2e',
   },
   background: {
     ...StyleSheet.absoluteFillObject,

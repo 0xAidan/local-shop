@@ -16,7 +16,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { ShopCarousel } from '../components/ShopCarousel';
 import { DynamicHeader } from '../components/DynamicHeader';
-import { FloatingActionBar } from '../components/FloatingActionBar';
 import { CategoryFilter, Category } from '../components/CategoryFilter';
 import { SearchBar, SearchFilters } from '../components/SearchBar';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -259,11 +258,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           scrollY={scrollY}
         />
 
-        {/* Floating Action Bar */}
-        <FloatingActionBar
-          scrollY={scrollY}
-          onSearchPress={handleSearchPress}
-        />
+
 
         {/* Content */}
         <Animated.ScrollView 

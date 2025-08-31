@@ -25,6 +25,7 @@ interface CategoryFilterProps {
   selectedCategory: string | null;
   onCategorySelect: (categoryId: string | null) => void;
   compact?: boolean;
+  onSearchPress?: () => void;
 }
 
 const defaultCategories: Category[] = [
@@ -59,9 +60,10 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   selectedCategory,
   onCategorySelect,
   compact = false,
+  onSearchPress,
 }) => {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, compact && styles.containerCompact]}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -72,6 +74,17 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
         decelerationRate="fast"
         snapToInterval={100}
       >
+        {/* Search button when compact */}
+        {compact && onSearchPress && (
+          <TouchableOpacity
+            style={styles.searchButton}
+            onPress={onSearchPress}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="search" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        )}
+        
         {categories.map((category) => {
           const isSelected = selectedCategory === category.id;
           
@@ -114,6 +127,10 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 24,
   },
+  containerCompact: {
+    marginBottom: 0,
+    marginHorizontal: -20, // Extend beyond parent padding
+  },
   scrollContent: {
     paddingHorizontal: 20,
     gap: 12,
@@ -121,6 +138,16 @@ const styles = StyleSheet.create({
   scrollContentCompact: {
     justifyContent: 'space-around',
     flexGrow: 1,
+    paddingHorizontal: 0,
+  },
+  searchButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   categoryContainer: {
     minWidth: 80,
