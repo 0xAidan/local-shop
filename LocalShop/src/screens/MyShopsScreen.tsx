@@ -48,8 +48,8 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
             address: "123 Main St",
             coordinates: { latitude: 48.3809, longitude: -89.2477 },
             city: "Thunder Bay",
-            state: "ON",
-            zipCode: "P7A 1A1"
+            province: "ON",
+            postalCode: "P7A 1A1"
           },
           rating: { average: 4.5, count: 12 },
           isActive: true,
@@ -64,8 +64,8 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
             address: "456 Park Ave",
             coordinates: { latitude: 48.3809, longitude: -89.2477 },
             city: "Thunder Bay",
-            state: "ON",
-            zipCode: "P7A 2B2"
+            province: "ON",
+            postalCode: "P7A 2B2"
           },
           rating: { average: 4.2, count: 8 },
           isActive: true,

@@ -151,7 +151,7 @@ export const MapPreview: React.FC<MapPreviewProps> = ({
               
               <View style={styles.cityInfo}>
                 <Text style={styles.cityText}>
-                  {shop.location.city}, {shop.location.state} {shop.location.zipCode}
+                  {shop.location.city}, {shop.location.province} {shop.location.postalCode}
                 </Text>
               </View>
 

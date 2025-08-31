@@ -261,10 +261,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
               onChangeText={(text) => updateField('location', { ...editedUser?.location, city: text })}
             />
             <ProfileField
-              label="State"
-              value={editedUser?.location?.state || ''}
+              label="Province"
+              value={editedUser?.location?.province || ''}
               editable={true}
-              onChangeText={(text) => updateField('location', { ...editedUser?.location, state: text })}
+              onChangeText={(text) => updateField('location', { ...editedUser?.location, province: text })}
             />
           </ProfileSection>
 

@@ -9,10 +9,10 @@ const geocodeAddress = async (address) => {
   try {
     if (!process.env.GOOGLE_MAPS_API_KEY) {
       console.warn('Google Maps API key not configured, using fallback coordinates');
-      // Return fallback coordinates for development
+      // Return fallback coordinates for Canada (Toronto)
       return {
-        latitude: 40.7128,
-        longitude: -74.0060
+        latitude: 43.6532,
+        longitude: -79.3832
       };
     }
 
@@ -21,25 +21,73 @@ const geocodeAddress = async (address) => {
       {
         params: {
           address: address,
-          key: process.env.GOOGLE_MAPS_API_KEY
+          key: process.env.GOOGLE_MAPS_API_KEY,
+          region: 'ca', // Bias results to Canada
+          components: 'country:CA' // Restrict to Canada
         }
       }
     );
 
     if (response.data.status === 'OK' && response.data.results.length > 0) {
       const location = response.data.results[0].geometry.location;
+      console.log(`✅ Geocoded address "${address}" to coordinates: ${location.lat}, ${location.lng}`);
       return {
         latitude: location.lat,
         longitude: location.lng
       };
     } else {
       console.error('Geocoding failed:', response.data.status, response.data.error_message);
+      
+      // Try to extract province from address and provide fallback coordinates
+      const provinceMatch = address.match(/\b(AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT)\b/i);
+      if (provinceMatch) {
+        const province = provinceMatch[0].toUpperCase();
+        const fallbackCoords = getProvinceFallbackCoordinates(province);
+        console.log(`⚠️ Using fallback coordinates for ${province}: ${fallbackCoords.latitude}, ${fallbackCoords.longitude}`);
+        return fallbackCoords;
+      }
+      
       return null;
     }
   } catch (error) {
     console.error('Error geocoding address:', error.message);
+    
+    // Try to extract province from address and provide fallback coordinates
+    const provinceMatch = address.match(/\b(AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT)\b/i);
+    if (provinceMatch) {
+      const province = provinceMatch[0].toUpperCase();
+      const fallbackCoords = getProvinceFallbackCoordinates(province);
+      console.log(`⚠️ Using fallback coordinates for ${province}: ${fallbackCoords.latitude}, ${fallbackCoords.longitude}`);
+      return fallbackCoords;
+    }
+    
     return null;
   }
+};
+
+/**
+ * Get fallback coordinates for Canadian provinces
+ * @param {string} province - Province code
+ * @returns {Object} Coordinates object
+ */
+const getProvinceFallbackCoordinates = (province) => {
+  const provinceCoords = {
+    'AB': { latitude: 53.9333, longitude: -116.5765 }, // Edmonton
+    'BC': { latitude: 49.2827, longitude: -123.1207 }, // Vancouver
+    'MB': { latitude: 49.8951, longitude: -97.1384 }, // Winnipeg
+    'NB': { latitude: 45.9636, longitude: -66.6431 }, // Fredericton
+    'NL': { latitude: 47.5615, longitude: -52.7126 }, // St. John's
+    'NS': { latitude: 44.6488, longitude: -63.5752 }, // Halifax
+    'NT': { latitude: 62.4540, longitude: -114.3718 }, // Yellowknife
+    'NU': { latitude: 63.7467, longitude: -68.5170 }, // Iqaluit
+    'ON': { latitude: 43.6532, longitude: -79.3832 }, // Toronto
+    'PE': { latitude: 46.2382, longitude: -63.1311 }, // Charlottetown
+    'QC': { latitude: 45.5017, longitude: -73.5673 }, // Montreal
+    'SK': { latitude: 50.4452, longitude: -104.6189 }, // Regina
+    'YT': { latitude: 60.7212, longitude: -135.0568 }, // Whitehorse
+  };
+  
+  return provinceCoords[province] || { latitude: 43.6532, longitude: -79.3832 }; // Default to Toronto
 };
 
 /**

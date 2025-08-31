@@ -501,7 +501,7 @@ class ApiService {
   }
 
   // Image Upload
-  async uploadImage(imageUri: string, type: 'image' | 'images' | 'avatar' = 'image'): Promise<{
+  async uploadImage(imageUri: string, type: 'image' | 'images' | 'avatar' | 'shop-logos' | 'shop-images' = 'image'): Promise<{
     url: string;
     publicId: string;
     width: number;

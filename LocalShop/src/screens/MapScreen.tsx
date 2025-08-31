@@ -62,7 +62,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
         shop.description?.toLowerCase().includes(query) ||
         shop.category.toLowerCase().includes(query) ||
         shop.location.city.toLowerCase().includes(query) ||
-        shop.location.state.toLowerCase().includes(query)
+        shop.location.province.toLowerCase().includes(query)
       );
     }
 

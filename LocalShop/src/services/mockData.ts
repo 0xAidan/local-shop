@@ -12,8 +12,8 @@ export const mockShops: Shop[] = [
       address: '123 Main St',
       coordinates: { latitude: 48.3809, longitude: -89.2477 },
       city: 'Thunder Bay',
-      state: 'ON',
-      zipCode: 'P7A 1A1'
+      province: 'ON',
+      postalCode: 'P7A 1A1'
     },
     owner: {
       id: 1,
@@ -34,8 +34,8 @@ export const mockShops: Shop[] = [
       address: '456 Oak Ave',
       coordinates: { latitude: 48.3810, longitude: -89.2478 },
       city: 'Thunder Bay',
-      state: 'ON',
-      zipCode: 'P7A 2B2'
+      province: 'ON',
+      postalCode: 'P7A 2B2'
     },
     owner: {
       id: 2,
@@ -56,8 +56,8 @@ export const mockShops: Shop[] = [
       address: '789 Pine Rd',
       coordinates: { latitude: 48.3811, longitude: -89.2479 },
       city: 'Thunder Bay',
-      state: 'ON',
-      zipCode: 'P7A 3C3'
+      province: 'ON',
+      postalCode: 'P7A 3C3'
     },
     owner: {
       id: 3,
@@ -78,8 +78,8 @@ export const mockShops: Shop[] = [
       address: '321 Elm St',
       coordinates: { latitude: 48.3812, longitude: -89.2480 },
       city: 'Thunder Bay',
-      state: 'ON',
-      zipCode: 'P7A 4D4'
+      province: 'ON',
+      postalCode: 'P7A 4D4'
     },
     owner: {
       id: 4,
@@ -100,8 +100,8 @@ export const mockShops: Shop[] = [
       address: '654 Maple Dr',
       coordinates: { latitude: 48.3813, longitude: -89.2481 },
       city: 'Thunder Bay',
-      state: 'ON',
-      zipCode: 'P7A 5E5'
+      province: 'ON',
+      postalCode: 'P7A 5E5'
     },
     owner: {
       id: 5,
@@ -122,8 +122,8 @@ export const mockShops: Shop[] = [
       address: '987 Farm Rd',
       coordinates: { latitude: 48.3814, longitude: -89.2482 },
       city: 'Thunder Bay',
-      state: 'ON',
-      zipCode: 'P7A 6F6'
+      province: 'ON',
+      postalCode: 'P7A 6F6'
     },
     owner: {
       id: 6,
@@ -144,8 +144,8 @@ export const mockShops: Shop[] = [
       address: '147 Cedar Ln',
       coordinates: { latitude: 48.3815, longitude: -89.2483 },
       city: 'Thunder Bay',
-      state: 'ON',
-      zipCode: 'P7A 7G7'
+      province: 'ON',
+      postalCode: 'P7A 7G7'
     },
     owner: {
       id: 7,
@@ -166,8 +166,8 @@ export const mockShops: Shop[] = [
       address: '258 Birch Way',
       coordinates: { latitude: 48.3816, longitude: -89.2484 },
       city: 'Thunder Bay',
-      state: 'ON',
-      zipCode: 'P7A 8H8'
+      province: 'ON',
+      postalCode: 'P7A 8H8'
     },
     owner: {
       id: 8,
@@ -259,8 +259,8 @@ export const mockUser: User = {
   location: {
     address: '123 Main St',
     city: 'Thunder Bay',
-    state: 'ON',
-    zipCode: 'P7A 1A1',
+    province: 'ON',
+    postalCode: 'P7A 1A1',
     coordinates: { latitude: 48.3809, longitude: -89.2477 }
   }
 }; 

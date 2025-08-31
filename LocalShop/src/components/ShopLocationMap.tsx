@@ -181,7 +181,7 @@ export const ShopLocationMap: React.FC<ShopLocationMapProps> = ({
           <Text style={styles.shopName}>{shop.name}</Text>
           <Text style={styles.shopAddress}>{shop.location.address}</Text>
           <Text style={styles.shopCity}>
-            {shop.location.city}, {shop.location.state} {shop.location.zipCode}
+            {shop.location.city}, {shop.location.province} {shop.location.postalCode}
           </Text>
           {shop.contact?.phone && (
             <Text style={styles.shopPhone}>📞 {shop.contact.phone}</Text>

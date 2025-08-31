@@ -12,6 +12,8 @@ import {
   Switch,
   Image,
   Dimensions,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -115,6 +117,11 @@ export const CreateShopScreen: React.FC = () => {
     longitudeDelta: 0.01,
   });
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [showProvinceModal, setShowProvinceModal] = useState(false);
+  const [geocodedCoordinates, setGeocodedCoordinates] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   const navigation = useNavigation();
 
@@ -164,6 +171,16 @@ export const CreateShopScreen: React.FC = () => {
         ? prev.filter(f => f !== feature)
         : [...prev, feature]
     );
+  };
+
+  const selectProvince = (provinceCode: string) => {
+    updateLocation('province', provinceCode);
+    setShowProvinceModal(false);
+  };
+
+  const getProvinceName = (code: string) => {
+    const province = CANADIAN_PROVINCES.find(p => p.code === code);
+    return province ? province.name : 'Select Province';
   };
 
   const uploadShopLogo = async () => {
@@ -251,6 +268,7 @@ export const CreateShopScreen: React.FC = () => {
       const coordinates = await apiService.geocodeAddress(fullAddress);
       
       if (coordinates) {
+        setGeocodedCoordinates(coordinates);
         setMapRegion({
           latitude: coordinates.latitude,
           longitude: coordinates.longitude,
@@ -410,18 +428,18 @@ export const CreateShopScreen: React.FC = () => {
               />
 
               <Text style={styles.label}>Province *</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={formData.location.province}
-                  onValueChange={(value) => updateLocation('province', value)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Select Province" value="" />
-                  {CANADIAN_PROVINCES.map((province) => (
-                    <Picker.Item key={province.code} label={province.name} value={province.code} />
-                  ))}
-                </Picker>
-              </View>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setShowProvinceModal(true)}
+              >
+                <Text style={[
+                  styles.dropdownButtonText,
+                  !formData.location.province && styles.dropdownButtonTextPlaceholder
+                ]}>
+                  {getProvinceName(formData.location.province)}
+                </Text>
+                <Text style={styles.dropdownArrow}>▼</Text>
+              </TouchableOpacity>
 
               <Text style={styles.label}>Postal Code *</Text>
               <TextInput
@@ -443,18 +461,26 @@ export const CreateShopScreen: React.FC = () => {
                   showsUserLocation={false}
                   showsMyLocationButton={false}
                 >
-                  <Marker
-                    coordinate={{
-                      latitude: mapRegion.latitude,
-                      longitude: mapRegion.longitude,
-                    }}
-                    title={formData.name || 'Shop Location'}
-                    description={formData.location.address}
-                  />
+                  {geocodedCoordinates && (
+                    <Marker
+                      coordinate={{
+                        latitude: geocodedCoordinates.latitude,
+                        longitude: geocodedCoordinates.longitude,
+                      }}
+                      title={formData.name || 'Shop Location'}
+                      description={formData.location.address}
+                      pinColor="#4A90E2"
+                    />
+                  )}
                 </MapView>
                 {isGeocoding && (
                   <View style={styles.geocodingOverlay}>
                     <Text style={styles.geocodingText}>Updating location...</Text>
+                  </View>
+                )}
+                {!geocodedCoordinates && !isGeocoding && formData.location.address && (
+                  <View style={styles.geocodingOverlay}>
+                    <Text style={styles.geocodingText}>Enter address details to see location</Text>
                   </View>
                 )}
               </View>
@@ -543,6 +569,44 @@ export const CreateShopScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* Province Selection Modal */}
+        <Modal
+          visible={showProvinceModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowProvinceModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Province</Text>
+                <TouchableOpacity
+                  onPress={() => setShowProvinceModal(false)}
+                  style={styles.modalCloseButton}
+                >
+                  <Text style={styles.modalCloseText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={CANADIAN_PROVINCES}
+                keyExtractor={(item) => item.code}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.provinceItem}
+                    onPress={() => selectProvince(item.code)}
+                  >
+                    <Text style={styles.provinceItemText}>{item.name}</Text>
+                    {formData.location.province === item.code && (
+                      <Text style={styles.provinceItemCheck}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+                style={styles.provinceList}
+              />
+            </View>
+          </View>
+        </Modal>
       </KeyboardAvoidingView>
     </LinearGradient>
   );
@@ -621,6 +685,26 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
   },
+  dropdownButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dropdownButtonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  dropdownButtonTextPlaceholder: {
+    color: '#999',
+  },
+  dropdownArrow: {
+    fontSize: 12,
+    color: '#666',
+  },
   logoUpload: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -673,6 +757,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '500',
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   featuresGrid: {
     flexDirection: 'row',
@@ -713,5 +799,57 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '600',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  modalCloseButton: {
+    padding: 5,
+  },
+  modalCloseText: {
+    fontSize: 20,
+    color: '#666',
+  },
+  provinceList: {
+    maxHeight: 400,
+  },
+  provinceItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  provinceItemText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  provinceItemCheck: {
+    fontSize: 16,
+    color: '#4A90E2',
+    fontWeight: 'bold',
   },
 }); 

@@ -48,8 +48,8 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
   const [deliveryAddress, setDeliveryAddress] = useState({
     street: user?.location?.address || '',
     city: user?.location?.city || '',
-    state: user?.location?.state || '',
-    zipCode: user?.location?.zipCode || '',
+    province: user?.location?.province || '',
+    postalCode: user?.location?.postalCode || '',
   });
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -293,18 +293,18 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
           />
           <TextInput
             style={[styles.input, styles.halfInput]}
-            placeholder="State"
+            placeholder="Province"
             placeholderTextColor="#666666"
-            value={deliveryAddress.state}
-            onChangeText={(text) => setDeliveryAddress(prev => ({ ...prev, state: text }))}
+            value={deliveryAddress.province}
+            onChangeText={(text) => setDeliveryAddress(prev => ({ ...prev, province: text }))}
           />
         </View>
         <TextInput
           style={styles.input}
-          placeholder="ZIP Code"
+          placeholder="Postal Code"
           placeholderTextColor="#666666"
-          value={deliveryAddress.zipCode}
-          onChangeText={(text) => setDeliveryAddress(prev => ({ ...prev, zipCode: text }))}
+          value={deliveryAddress.postalCode}
+          onChangeText={(text) => setDeliveryAddress(prev => ({ ...prev, postalCode: text }))}
           keyboardType="numeric"
         />
         <TextInput

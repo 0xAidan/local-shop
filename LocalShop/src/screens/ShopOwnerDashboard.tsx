@@ -318,7 +318,7 @@ export const ShopOwnerDashboard: React.FC = () => {
                   </View>
                   <Text style={styles.shopCategory}>{shop.category}</Text>
                   <Text style={styles.shopLocation} numberOfLines={1}>
-                    📍 {shop.location.city}, {shop.location.state}
+                    📍 {shop.location.city}, {shop.location.province}
                   </Text>
                   <View style={styles.shopStats}>
                     <Text style={styles.shopRating}>
