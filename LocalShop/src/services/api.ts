@@ -406,6 +406,114 @@ class ApiService {
     });
   }
 
+  // Order Management
+  async getShopOrders(shopId: string, options: {
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  } = {}): Promise<{
+    data: {
+      orders: any[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalOrders: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+      };
+    };
+  }> {
+    if (USE_MOCK_API) {
+      return this.getApiService().getShopOrders(shopId, options);
+    }
+
+    const queryParams = new URLSearchParams();
+    if (options.status) queryParams.append('status', options.status);
+    if (options.startDate) queryParams.append('startDate', options.startDate);
+    if (options.endDate) queryParams.append('endDate', options.endDate);
+    if (options.page) queryParams.append('page', options.page.toString());
+    if (options.limit) queryParams.append('limit', options.limit.toString());
+
+    const response = await this.request(`/orders/shop/${shopId}?${queryParams.toString()}`);
+    return response;
+  }
+
+  async getOrder(orderId: string): Promise<{ data: any }> {
+    if (USE_MOCK_API) {
+      return this.getApiService().getOrder(orderId);
+    }
+
+    const response = await this.request(`/orders/${orderId}`);
+    return response;
+  }
+
+  async updateOrderStatus(orderId: string, status: string, notes?: string): Promise<{ data: any }> {
+    if (USE_MOCK_API) {
+      return this.getApiService().updateOrderStatus(orderId, status, notes);
+    }
+
+    const response = await this.request(`/orders/${orderId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, notes }),
+    });
+    return response;
+  }
+
+  async processRefund(orderId: string, refundData: {
+    refundAmount: number;
+    reason: string;
+    items?: any[];
+  }): Promise<{ data: any }> {
+    if (USE_MOCK_API) {
+      return this.getApiService().processRefund(orderId, refundData);
+    }
+
+    const response = await this.request(`/orders/${orderId}/refund`, {
+      method: 'POST',
+      body: JSON.stringify(refundData),
+    });
+    return response;
+  }
+
+  async getShopOrderStats(shopId: string, period: string = '30days'): Promise<{ data: any }> {
+    if (USE_MOCK_API) {
+      return this.getApiService().getShopOrderStats(shopId, period);
+    }
+
+    const response = await this.request(`/orders/shop/${shopId}/stats?period=${period}`);
+    return response;
+  }
+
+  async createOrder(orderData: {
+    shopId: string;
+    items: Array<{
+      productId: string;
+      quantity: number;
+      price: number;
+      productType?: 'stock' | 'unique' | 'service';
+    }>;
+    delivery: {
+      method: string;
+      address?: any;
+      instructions?: string;
+    };
+    payment: {
+      method: string;
+    };
+  }): Promise<{ data: any }> {
+    if (USE_MOCK_API) {
+      return this.getApiService().createOrder(orderData);
+    }
+
+    const response = await this.request('/orders', {
+      method: 'POST',
+      body: JSON.stringify(orderData),
+    });
+    return response;
+  }
+
   // Image Upload
   async uploadImage(imageUri: string, type: 'image' | 'images' | 'avatar' = 'image'): Promise<{
     url: string;

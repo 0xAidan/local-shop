@@ -115,6 +115,8 @@ const shopSchema = new mongoose.Schema({
     default: false
   },
   
+  // Rating is now calculated from the Review model
+  // This field is maintained for backward compatibility and performance
   rating: {
     average: {
       type: Number,
@@ -169,12 +171,28 @@ shopSchema.virtual('fullAddress').get(function() {
   return `${this.location.address}, ${this.location.city}, ${this.location.state} ${this.location.zipCode}`;
 });
 
-// Method to update rating
-shopSchema.methods.updateRating = function(newRating) {
-  const totalRating = this.rating.average * this.rating.count + newRating;
-  this.rating.count += 1;
-  this.rating.average = totalRating / this.rating.count;
-  return this.save();
+// Method to update rating from Review model
+shopSchema.methods.updateRating = async function(newRating) {
+  try {
+    const Review = mongoose.model('Review');
+    const reviews = await Review.find({
+      shop: this._id,
+      status: 'active'
+    });
+    
+    if (reviews.length === 0) {
+      this.rating.average = 0;
+      this.rating.count = 0;
+    } else {
+      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+      this.rating.average = totalRating / reviews.length;
+      this.rating.count = reviews.length;
+    }
+    return this.save();
+  } catch (error) {
+    console.error('Error updating shop rating:', error);
+    return this;
+  }
 };
 
 module.exports = mongoose.model('Shop', shopSchema); 

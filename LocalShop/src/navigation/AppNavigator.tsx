@@ -20,6 +20,7 @@ import { CustomerDashboard } from '../screens/CustomerDashboard';
 import { MapScreen } from '../screens/MapScreen';
 import { CartScreen } from '../screens/CartScreen';
 import { CheckoutScreen } from '../screens/CheckoutScreen';
+import { OrderManagementScreen } from '../screens/OrderManagementScreen';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -36,6 +37,7 @@ export type RootStackParamList = {
   MapScreen: undefined;
   Cart: undefined;
   Checkout: undefined;
+  OrderManagement: { shop: any };
   ShopOwnerTabs: undefined;
   CustomerTabs: undefined;
 };
@@ -307,6 +309,7 @@ export const AppNavigator: React.FC = () => {
             <Stack.Screen name="MyShops" component={MyShopsScreen} />
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="ShopDetail" component={ShopDetailScreen} />
+            <Stack.Screen name="OrderManagement" component={OrderManagementScreen} />
           </>
         ) : (
           // Customer Flow

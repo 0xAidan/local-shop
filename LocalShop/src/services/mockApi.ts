@@ -3,6 +3,7 @@ import {
   User, 
   Shop, 
   Product, 
+  Order,
   AuthResponse, 
   ApiResponse, 
   ShopFormData, 
@@ -106,6 +107,166 @@ const mockProducts: Product[] = [
     isAvailable: true,
     averageRating: 4.8,
     reviewCount: 12
+  }
+];
+
+// Mock order data
+const mockOrders: Order[] = [
+  {
+    _id: '1',
+    id: 1,
+    userId: '2',
+    shopId: '1',
+    products: [
+      {
+        productId: '1',
+        quantity: 2,
+        price: 4.99,
+        productType: 'stock'
+      }
+    ],
+    subtotal: 9.98,
+    tax: 0.80,
+    total: 10.78,
+    status: 'pending',
+    paymentStatus: 'paid',
+    pickupLocation: 'Fresh Market - 123 Main St',
+    pickupTime: '2024-01-15T14:00:00Z',
+    financials: {
+      platformFee: 0.32,
+      netAmount: 10.46,
+      currency: 'CAD'
+    },
+    returnEligible: true,
+    returnWindow: 30,
+    createdAt: '2024-01-15T10:00:00Z',
+    customer: {
+      userId: '2',
+      name: 'Jane Customer',
+      email: 'customer@test.com',
+      phone: '555-0123',
+      address: {
+        street: '789 Customer St',
+        city: 'Thunder Bay',
+        state: 'ON',
+        zipCode: 'P7A 3C3'
+      }
+    },
+    shop: {
+      shopId: '1',
+      name: 'Fresh Market',
+      location: {
+        address: '123 Main St',
+        city: 'Thunder Bay',
+        state: 'ON',
+        zipCode: 'P7A 1A1'
+      }
+    },
+    items: [
+      {
+        product: '1',
+        name: 'Organic Apples',
+        quantity: 2,
+        unitPrice: 4.99,
+        totalPrice: 9.98,
+        productType: 'stock'
+      }
+    ],
+    delivery: {
+      method: 'pickup',
+      address: {
+        street: '123 Main St',
+        city: 'Thunder Bay',
+        state: 'ON',
+        zipCode: 'P7A 1A1'
+      },
+      instructions: 'Please have order ready at counter',
+      estimatedTime: '15-30 mins'
+    },
+    payment: {
+      method: 'card',
+      status: 'paid',
+      transactionId: 'txn_123456',
+      paidAt: new Date('2024-01-15T10:05:00Z')
+    }
+  },
+  {
+    _id: '2',
+    id: 2,
+    userId: '2',
+    shopId: '2',
+    products: [
+      {
+        productId: '2',
+        quantity: 1,
+        price: 6.99,
+        productType: 'stock'
+      }
+    ],
+    subtotal: 6.99,
+    tax: 0.56,
+    total: 7.55,
+    status: 'confirmed',
+    paymentStatus: 'paid',
+    pickupLocation: 'Artisan Bakery - 456 Oak Ave',
+    pickupTime: '2024-01-15T16:00:00Z',
+    financials: {
+      platformFee: 0.22,
+      netAmount: 7.33,
+      currency: 'CAD'
+    },
+    returnEligible: true,
+    returnWindow: 30,
+    createdAt: '2024-01-15T11:00:00Z',
+    customer: {
+      userId: '2',
+      name: 'Jane Customer',
+      email: 'customer@test.com',
+      phone: '555-0123',
+      address: {
+        street: '789 Customer St',
+        city: 'Thunder Bay',
+        state: 'ON',
+        zipCode: 'P7A 3C3'
+      }
+    },
+    shop: {
+      shopId: '2',
+      name: 'Artisan Bakery',
+      location: {
+        address: '456 Oak Ave',
+        city: 'Thunder Bay',
+        state: 'ON',
+        zipCode: 'P7A 2B2'
+      }
+    },
+    items: [
+      {
+        product: '2',
+        name: 'Sourdough Bread',
+        quantity: 1,
+        unitPrice: 6.99,
+        totalPrice: 6.99,
+        productType: 'stock'
+      }
+    ],
+    delivery: {
+      method: 'pickup',
+      address: {
+        street: '456 Oak Ave',
+        city: 'Thunder Bay',
+        state: 'ON',
+        zipCode: 'P7A 2B2'
+      },
+      instructions: 'Fresh bread, please handle with care',
+      estimatedTime: '15-30 mins'
+    },
+    payment: {
+      method: 'card',
+      status: 'paid',
+      transactionId: 'txn_123457',
+      paidAt: new Date('2024-01-15T11:05:00Z')
+    }
   }
 ];
 
@@ -340,6 +501,231 @@ class MockApiService {
     
     mockProducts[productIndex] = { ...mockProducts[productIndex], ...productData };
     return mockProducts[productIndex];
+  }
+
+  // Order Management
+  async getShopOrders(shopId: string, options: {
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  } = {}): Promise<{
+    data: {
+      orders: Order[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalOrders: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+      };
+    };
+  }> {
+    await this.delay();
+    
+    let filteredOrders = mockOrders.filter(order => order.shopId === shopId);
+    
+    if (options.status && options.status !== 'all') {
+      filteredOrders = filteredOrders.filter(order => order.status === options.status);
+    }
+    
+    const totalOrders = filteredOrders.length;
+    const currentPage = options.page || 1;
+    const limit = options.limit || 20;
+    const totalPages = Math.ceil(totalOrders / limit);
+    const startIndex = (currentPage - 1) * limit;
+    const endIndex = startIndex + limit;
+    
+    const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+    
+    return {
+      data: {
+        orders: paginatedOrders,
+        pagination: {
+          currentPage,
+          totalPages,
+          totalOrders,
+          hasNext: currentPage < totalPages,
+          hasPrev: currentPage > 1
+        }
+      }
+    };
+  }
+
+  async getOrder(orderId: string): Promise<{ data: Order }> {
+    await this.delay();
+    const order = mockOrders.find(o => o._id === orderId);
+    if (!order) {
+      throw new Error('Order not found');
+    }
+    return { data: order };
+  }
+
+  async updateOrderStatus(orderId: string, status: string, notes?: string): Promise<{ data: Order }> {
+    await this.delay();
+    const orderIndex = mockOrders.findIndex(o => o._id === orderId);
+    if (orderIndex === -1) {
+      throw new Error('Order not found');
+    }
+    
+    mockOrders[orderIndex].status = status as any;
+    mockOrders[orderIndex].updatedAt = new Date().toISOString();
+    
+    return { data: mockOrders[orderIndex] };
+  }
+
+  async processRefund(orderId: string, refundData: {
+    refundAmount: number;
+    reason: string;
+    items?: any[];
+  }): Promise<{ data: Order }> {
+    await this.delay();
+    const orderIndex = mockOrders.findIndex(o => o._id === orderId);
+    if (orderIndex === -1) {
+      throw new Error('Order not found');
+    }
+    
+    mockOrders[orderIndex].status = 'refunded';
+    mockOrders[orderIndex].paymentStatus = 'refunded';
+    mockOrders[orderIndex].updatedAt = new Date().toISOString();
+    
+    return { data: mockOrders[orderIndex] };
+  }
+
+  async getShopOrderStats(shopId: string, period: string = '30days'): Promise<{ data: any }> {
+    await this.delay();
+    
+    const shopOrders = mockOrders.filter(order => order.shopId === shopId);
+    
+    const statusCounts: { [key: string]: { count: number; revenue: number } } = {};
+    let totalRevenue = 0;
+    
+    shopOrders.forEach(order => {
+      const status = order.status;
+      if (!statusCounts[status]) {
+        statusCounts[status] = { count: 0, revenue: 0 };
+      }
+      statusCounts[status].count++;
+      statusCounts[status].revenue += order.total || 0;
+      totalRevenue += order.total || 0;
+    });
+    
+    const avgOrderValue = shopOrders.length > 0 ? totalRevenue / shopOrders.length : 0;
+    
+    return {
+      data: {
+        period,
+        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        endDate: new Date(),
+        statusCounts,
+        totals: {
+          totalOrders: shopOrders.length,
+          totalRevenue,
+          avgOrderValue
+        }
+      }
+    };
+  }
+
+  async createOrder(orderData: {
+    shopId: string;
+    items: Array<{
+      productId: string;
+      quantity: number;
+      price: number;
+      productType?: 'stock' | 'unique' | 'service';
+    }>;
+    delivery: {
+      method: string;
+      address?: any;
+      instructions?: string;
+    };
+    payment: {
+      method: string;
+    };
+  }): Promise<{ data: any }> {
+    await this.delay();
+    
+    if (!this.currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    // Create new order
+    const newOrder: Order = {
+      _id: (mockOrders.length + 1).toString(),
+      id: mockOrders.length + 1,
+      userId: this.currentUser._id,
+      shopId: orderData.shopId,
+      products: orderData.items,
+      subtotal: orderData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+      tax: 0, // Calculate tax based on location
+      total: 0, // Will be calculated
+      status: 'pending',
+      paymentStatus: 'paid',
+      pickupLocation: 'Store Location',
+      pickupTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
+      financials: {
+        platformFee: 0,
+        netAmount: 0,
+        currency: 'CAD'
+      },
+      returnEligible: true,
+      returnWindow: 30,
+      createdAt: new Date().toISOString(),
+      customer: {
+        userId: this.currentUser._id,
+        name: `${this.currentUser.firstName} ${this.currentUser.lastName}`,
+        email: this.currentUser.email,
+        phone: this.currentUser.phone || '',
+        address: {
+          street: '',
+          city: '',
+          state: '',
+          zipCode: ''
+        }
+      },
+      shop: {
+        shopId: orderData.shopId,
+        name: 'Local Shop',
+        location: {
+          address: '',
+          city: '',
+          state: '',
+          zipCode: ''
+        }
+      },
+      items: orderData.items.map(item => ({
+        product: item.productId,
+        name: 'Product',
+        quantity: item.quantity,
+        unitPrice: item.price,
+        totalPrice: item.price * item.quantity,
+        productType: item.productType || 'stock'
+      })),
+      delivery: {
+        method: orderData.delivery.method as any,
+        address: orderData.delivery.address,
+        instructions: orderData.delivery.instructions,
+        estimatedTime: '15-30 mins'
+      },
+      payment: {
+        method: orderData.payment.method as any,
+        status: 'paid',
+        transactionId: `txn_${Date.now()}`,
+        paidAt: new Date()
+      }
+    };
+
+    // Calculate totals
+    newOrder.tax = newOrder.subtotal * 0.08; // 8% tax
+    newOrder.total = newOrder.subtotal + newOrder.tax;
+    newOrder.financials.platformFee = newOrder.total * 0.029 + 0.30; // 2.9% + $0.30
+    newOrder.financials.netAmount = newOrder.total - newOrder.financials.platformFee;
+
+    mockOrders.push(newOrder);
+    
+    return { data: newOrder };
   }
 
   async deleteProduct(id: string): Promise<void> {

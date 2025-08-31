@@ -104,8 +104,31 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      // Simulate order processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Create orders for each shop
+      const orderPromises = shopIds.map(async (shopId) => {
+        const shopItems = cartItemsByShop[shopId];
+        const orderData = {
+          shopId,
+          items: shopItems.map(item => ({
+            productId: item.product._id || item.product.id,
+            quantity: item.quantity,
+            price: item.product.price,
+            productType: item.product.productType || 'stock'
+          })),
+          delivery: {
+            method: selectedDeliveryOption,
+            address: deliveryAddress,
+            instructions: specialInstructions
+          },
+          payment: {
+            method: selectedPaymentMethod
+          }
+        };
+
+        return await apiService.createOrder(orderData);
+      });
+
+      const orders = await Promise.all(orderPromises);
       
       // Clear cart after successful order
       clearCart();
@@ -114,15 +137,8 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
       
       Alert.alert(
         'Order Placed Successfully!',
-        `Your order has been confirmed. Estimated delivery: ${selectedDelivery?.estimatedTime}`,
+        `Your ${orders.length} order${orders.length > 1 ? 's have' : ' has'} been confirmed. Estimated delivery: ${selectedDelivery?.estimatedTime}`,
         [
-          {
-            text: 'Track Order',
-            onPress: () => {
-              // Navigate to order tracking
-              navigation.navigate('CustomerTabs', { screen: 'Favorites' });
-            },
-          },
           {
             text: 'Continue Shopping',
             onPress: () => {
@@ -132,6 +148,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
         ]
       );
     } catch (error) {
+      console.error('Order creation error:', error);
       Alert.alert('Order Failed', 'There was an error processing your order. Please try again.');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {

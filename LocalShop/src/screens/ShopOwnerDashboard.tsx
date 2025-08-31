@@ -228,6 +228,12 @@ export const ShopOwnerDashboard: React.FC = () => {
                       📦 {shop.products?.length || 0} products
                     </Text>
                   </View>
+                  <TouchableOpacity
+                    style={styles.orderManagementButton}
+                    onPress={() => navigation.navigate('OrderManagement', { shop })}
+                  >
+                    <Text style={styles.orderManagementText}>📋 Manage Orders</Text>
+                  </TouchableOpacity>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -480,6 +486,19 @@ const styles = StyleSheet.create({
   shopProducts: {
     fontSize: 12,
     color: '#666',
+  },
+  orderManagementButton: {
+    backgroundColor: '#667eea',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 15,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  orderManagementText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
   },
   activityContainer: {
     backgroundColor: 'white',

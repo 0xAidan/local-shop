@@ -186,24 +186,8 @@ const productSchema = new mongoose.Schema({
     }]
   }],
   
-  reviews: [{
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    rating: {
-      type: Number,
-      required: true,
-      min: 1,
-      max: 5
-    },
-    comment: String,
-    createdAt: {
-      type: Date,
-      default: Date.now
-    }
-  }],
-  
+  // Reviews are now handled by the dedicated Review model
+  // These fields are maintained for backward compatibility and performance
   averageRating: {
     type: Number,
     default: 0,
@@ -246,23 +230,29 @@ productSchema.virtual('stockStatus').get(function() {
   return 'in-stock';
 });
 
-// Method to update average rating
-productSchema.methods.updateAverageRating = function() {
-  if (this.reviews.length === 0) {
-    this.averageRating = 0;
-    this.reviewCount = 0;
-  } else {
-    const totalRating = this.reviews.reduce((sum, review) => sum + review.rating, 0);
-    this.averageRating = totalRating / this.reviews.length;
-    this.reviewCount = this.reviews.length;
+// Method to update average rating from Review model
+productSchema.methods.updateAverageRating = async function() {
+  try {
+    const Review = mongoose.model('Review');
+    const reviews = await Review.find({
+      itemId: this._id,
+      type: 'product',
+      status: 'active'
+    });
+    
+    if (reviews.length === 0) {
+      this.averageRating = 0;
+      this.reviewCount = 0;
+    } else {
+      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+      this.averageRating = totalRating / reviews.length;
+      this.reviewCount = reviews.length;
+    }
+    return this.save();
+  } catch (error) {
+    console.error('Error updating product average rating:', error);
+    return this;
   }
-  return this.save();
-};
-
-// Method to add review
-productSchema.methods.addReview = function(userId, rating, comment) {
-  this.reviews.push({ user: userId, rating, comment });
-  return this.updateAverageRating();
 };
 
 // Pre-save middleware to ensure only one primary image
