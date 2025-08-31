@@ -14,6 +14,7 @@ import {
   Dimensions,
   Modal,
   FlatList,
+  SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -25,6 +26,8 @@ import { apiService } from '../services/api';
 import { ShopFormData } from '../types';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { RoleSwitcher } from '../components/RoleSwitcher';
+import { ScreenHeader } from '../components/ScreenHeader';
+import { ResponsiveButton } from '../components/ResponsiveButton';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -388,15 +391,18 @@ export const CreateShopScreen: React.FC = () => {
   };
 
   return (
-    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.content}>
-            <Text style={styles.title}>Create Your Shop</Text>
-            <Text style={styles.subtitle}>Set up your business profile</Text>
+    <SafeAreaView style={styles.container}>
+      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradient}>
+        <ScreenHeader 
+          title="Create Shop" 
+          subtitle="Set up your business profile"
+        />
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardContainer}
+        >
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.content}>
 
             {/* Basic Information */}
             <View style={styles.section}>
@@ -612,17 +618,18 @@ export const CreateShopScreen: React.FC = () => {
             </View>
 
             {/* Submit Button */}
-            <TouchableOpacity
-              style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+            <ResponsiveButton
+              title={isLoading ? 'Creating Shop...' : 'Create Shop'}
               onPress={handleSubmit}
               disabled={isLoading}
-            >
-              <Text style={styles.submitButtonText}>
-                {isLoading ? 'Creating Shop...' : 'Create Shop'}
-              </Text>
-            </TouchableOpacity>
+              variant="primary"
+              size="large"
+              fullWidth
+              style={styles.submitButton}
+            />
           </View>
         </ScrollView>
+        </KeyboardAvoidingView>
 
         {/* Province Selection Modal */}
         <Modal
@@ -661,13 +668,20 @@ export const CreateShopScreen: React.FC = () => {
             </View>
           </View>
         </Modal>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  gradient: {
+    flex: 1,
+  },
+  keyboardContainer: {
     flex: 1,
   },
   scrollView: {

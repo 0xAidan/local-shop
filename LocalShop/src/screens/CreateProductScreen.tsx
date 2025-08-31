@@ -11,6 +11,8 @@ import {
   Platform,
   Switch,
   Image,
+  SafeAreaView,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -20,6 +22,10 @@ import { ProductFormData, Shop } from '../types';
 import { ImageEditor } from '../components/ImageEditor';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { RoleSwitcher } from '../components/RoleSwitcher';
+import { ScreenHeader } from '../components/ScreenHeader';
+import { ResponsiveButton } from '../components/ResponsiveButton';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 const PRODUCT_CATEGORIES = [
   'Food',
@@ -361,29 +367,18 @@ export const CreateProductScreen: React.FC = () => {
   }
 
   return (
-    <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Text style={styles.backButtonText}>← Back</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Add New Product</Text>
-            <View style={styles.headerActions}>
-              {/* Role Switcher - Development Mode */}
-              {/* TODO: Remove this when authentication is re-enabled */}
-              <RoleSwitcher />
-            </View>
-          </View>
-
-          <View style={styles.content}>
+    <SafeAreaView style={styles.container}>
+      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradient}>
+        <ScreenHeader 
+          title="Create Product" 
+          subtitle="Add a new product to your shop"
+        />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.content}>
             {/* Product Images */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Product Images</Text>
@@ -685,15 +680,15 @@ export const CreateProductScreen: React.FC = () => {
             </View>
 
             {/* Submit Button */}
-            <TouchableOpacity
-              style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+            <ResponsiveButton
+              title={isLoading ? 'Creating Product...' : 'Create Product'}
               onPress={handleSubmit}
               disabled={isLoading}
-            >
-              <Text style={styles.submitButtonText}>
-                {isLoading ? 'Creating Product...' : 'Create Product'}
-              </Text>
-            </TouchableOpacity>
+              variant="primary"
+              size="large"
+              fullWidth
+              style={styles.submitButton}
+            />
           </View>
         </ScrollView>
 
@@ -706,13 +701,18 @@ export const CreateProductScreen: React.FC = () => {
             onCancel={handleImageEditCancel}
           />
         )}
-      </KeyboardAvoidingView>
-    </LinearGradient>
+        </KeyboardAvoidingView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  gradient: {
     flex: 1,
   },
   keyboardView: {

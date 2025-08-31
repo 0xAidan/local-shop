@@ -304,8 +304,16 @@ export const AppNavigator: React.FC = () => {
           // Shop Owner Flow
           <>
             <Stack.Screen name="ShopOwnerTabs" component={ShopOwnerTabNavigator} />
-            <Stack.Screen name="CreateShop" component={CreateShopScreen} />
-            <Stack.Screen name="CreateProduct" component={CreateProductScreen} />
+            <Stack.Screen 
+              name="CreateShop" 
+              component={CreateShopScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="CreateProduct" 
+              component={CreateProductScreen}
+              options={{ headerShown: false }}
+            />
             <Stack.Screen name="MyShops" component={MyShopsScreen} />
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="ShopDetail" component={ShopDetailScreen} />

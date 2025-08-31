@@ -9,12 +9,16 @@ import {
   StatusBar,
   Alert,
   RefreshControl,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { Shop } from '../types';
 import { apiService } from '../services/api';
 import { RoleSwitcher } from '../components/RoleSwitcher';
+import { ResponsiveButton } from '../components/ResponsiveButton';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 interface MyShopsScreenProps {
   navigation: any;
@@ -96,8 +100,8 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
   };
 
   const handleEditShop = (shop: Shop) => {
-    // TODO: Navigate to edit shop screen
-    Alert.alert('Edit Shop', `Edit ${shop.name}`);
+    // Navigate to edit shop screen (for now, show alert)
+    Alert.alert('Edit Shop', `Edit functionality for ${shop.name} will be implemented soon.`);
   };
 
   const handleAddProduct = (shop: Shop) => {
@@ -192,44 +196,48 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
       </View>
       
       <View style={styles.shopActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
+        <ResponsiveButton
+          title="View"
           onPress={() => handleShopPress(shop)}
-        >
-          <Text style={styles.actionButtonText}>View</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.addProductButton]}
+          variant="outline"
+          size="small"
+          style={styles.actionButton}
+        />
+        <ResponsiveButton
+          title="Add Product"
           onPress={() => handleAddProduct(shop)}
-        >
-          <Text style={styles.addProductButtonText}>Add Product</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.ordersButton]}
+          variant="outline"
+          size="small"
+          style={styles.actionButton}
+        />
+        <ResponsiveButton
+          title="Orders"
           onPress={() => handleManageOrders(shop)}
-        >
-          <Text style={styles.ordersButtonText}>Orders</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.editButton]}
+          variant="outline"
+          size="small"
+          style={styles.actionButton}
+        />
+        <ResponsiveButton
+          title="Edit"
           onPress={() => handleEditShop(shop)}
-        >
-          <Text style={styles.editButtonText}>Edit</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.toggleButton]}
+          variant="outline"
+          size="small"
+          style={styles.actionButton}
+        />
+        <ResponsiveButton
+          title={shop.isActive ? 'Deactivate' : 'Activate'}
           onPress={() => handleToggleShopStatus(shop)}
-        >
-          <Text style={styles.toggleButtonText}>
-            {shop.isActive ? 'Deactivate' : 'Activate'}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.deleteButton]}
+          variant="outline"
+          size="small"
+          style={styles.actionButton}
+        />
+        <ResponsiveButton
+          title="Delete"
           onPress={() => handleDeleteShop(shop)}
-        >
-          <Text style={styles.deleteButtonText}>Delete</Text>
-        </TouchableOpacity>
+          variant="danger"
+          size="small"
+          style={styles.actionButton}
+        />
       </View>
     </View>
   );
@@ -501,69 +509,16 @@ const styles = StyleSheet.create({
   },
   shopActions: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    gap: Math.max(4, screenWidth * 0.01),
+    marginTop: 8,
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
+    minWidth: Math.max(60, screenWidth * 0.15),
+    maxWidth: Math.max(80, screenWidth * 0.2),
   },
-  actionButtonText: {
-    fontSize: 12,
-    color: '#667eea',
-    fontWeight: '600',
-  },
-  addProductButton: {
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#667eea',
-  },
-  addProductButtonText: {
-    fontSize: 12,
-    color: '#667eea',
-    fontWeight: '600',
-  },
-  ordersButton: {
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#3b82f6',
-  },
-  ordersButtonText: {
-    fontSize: 12,
-    color: '#3b82f6',
-    fontWeight: '600',
-  },
-  editButton: {
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#667eea',
-  },
-  editButtonText: {
-    fontSize: 12,
-    color: '#667eea',
-    fontWeight: '600',
-  },
-  toggleButton: {
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#10b981',
-  },
-  toggleButtonText: {
-    fontSize: 12,
-    color: '#10b981',
-    fontWeight: '600',
-  },
-  deleteButton: {
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#ef4444',
-  },
-  deleteButtonText: {
-    fontSize: 12,
-    color: '#ef4444',
-    fontWeight: '600',
-  },
+
   bottomSpacing: {
     height: 40,
   },
