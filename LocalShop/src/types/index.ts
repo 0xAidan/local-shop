@@ -211,6 +211,57 @@ export interface User {
   lastLogin?: string;
 }
 
+export interface Review {
+  _id?: string;
+  type: 'product' | 'shop';
+  itemId: string;
+  shop: string;
+  user: {
+    _id?: string;
+    firstName: string;
+    lastName: string;
+  };
+  order: string;
+  rating: number;
+  content?: string;
+  status: 'active' | 'hidden' | 'disputed' | 'removed';
+  isContentVisible: boolean;
+  dispute?: {
+    isDisputed: boolean;
+    disputedBy?: string;
+    disputedAt?: string;
+    reason?: 'inappropriate_content' | 'false_information' | 'spam' | 'harassment' | 'other';
+    description?: string;
+    adminDecision?: 'pending' | 'approved' | 'rejected';
+    adminNotes?: string;
+    resolvedAt?: string;
+  };
+  helpfulVotes: {
+    count: number;
+    voters: string[];
+  };
+  images?: Array<{
+    url: string;
+    caption?: string;
+    uploadedAt: string;
+  }>;
+  tags?: string[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ReviewStats {
+  totalReviews: number;
+  averageRating: number;
+  ratingDistribution: {
+    '1': number;
+    '2': number;
+    '3': number;
+    '4': number;
+    '5': number;
+  };
+}
+
 export interface Order {
   _id?: string;
   id?: number;

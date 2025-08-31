@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { Shop, Order } from '../types';
 import { ShopCard } from '../components/ShopCard';
@@ -183,6 +184,13 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
         <Text style={styles.totalLabel}>Total:</Text>
         <Text style={styles.totalAmount}>${order.total.toFixed(2)}</Text>
       </View>
+      
+      {order.status === 'completed' && (
+        <TouchableOpacity style={styles.reviewButton}>
+          <Ionicons name="star-outline" size={16} color="#3B82F6" />
+          <Text style={styles.reviewButtonText}>Write Review</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -571,6 +579,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
+  },
+  reviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+  },
+  reviewButtonText: {
+    color: '#3B82F6',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   bottomSpacing: {
     height: 40,
