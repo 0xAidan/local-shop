@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -7,10 +7,16 @@ import {
   SafeAreaView,
   StatusBar,
   RefreshControl,
+  Animated,
+  Modal,
+  Alert,
+  TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ShopCarousel } from '../components/ShopCarousel';
-import { HomeHeader } from '../components/HomeHeader';
+import { DynamicHeader } from '../components/DynamicHeader';
+import { FloatingActionBar } from '../components/FloatingActionBar';
 import { CategoryFilter, Category } from '../components/CategoryFilter';
 import { SearchBar, SearchFilters } from '../components/SearchBar';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -34,6 +40,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState<SearchFilters>({});
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  
+  // Animation and modal states
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
 
   // Recommendation states
   const [recommendations, setRecommendations] = useState<RecommendationScore[]>([]);
@@ -177,7 +188,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const handleLocationPress = () => {
     // TODO: Implement location picker
-    console.log('Location pressed');
+    Alert.alert('Location', 'Location selection will be implemented soon.');
+  };
+
+  const handleSearchPress = () => {
+    setShowSearchModal(true);
+  };
+
+  const handleFilterPress = () => {
+    setShowFilterModal(true);
+  };
+
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (activeFilters.category && activeFilters.category !== 'All Categories') count++;
+    if (activeFilters.rating) count++;
+    if (activeFilters.distance) count++;
+    if (activeFilters.features && activeFilters.features.length > 0) count += activeFilters.features.length;
+    return count;
   };
 
   const handleCategorySelect = (categoryId: string | null) => {
@@ -210,39 +238,46 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   }
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper showBottomPadding={false}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
       <LinearGradient
         colors={['#000000', '#1a1a1a']}
         style={styles.gradient}
       >
-        {/* Header */}
-        <HomeHeader
+        {/* Dynamic Header */}
+        <DynamicHeader
           user={user}
           userLocation={userLocation}
+          searchQuery={searchQuery}
+          selectedCategory={selectedCategory}
+          activeFilters={activeFilters}
+          onSearch={handleSearch}
+          onCategorySelect={handleCategorySelect}
+          onFilterChange={handleFilterChange}
           onProfilePress={handleProfilePress}
           onLocationPress={handleLocationPress}
+          scrollY={scrollY}
         />
 
-        {/* Search Bar */}
-        <SearchBar
-          onSearch={handleSearch}
-          onFilterChange={handleFilterChange}
-          placeholder="Search shops, products..."
+        {/* Floating Action Bar */}
+        <FloatingActionBar
+          scrollY={scrollY}
+          onSearchPress={handleSearchPress}
+          onFilterPress={handleFilterPress}
+          onLocationPress={handleLocationPress}
+          onProfilePress={handleProfilePress}
+          activeFiltersCount={getActiveFiltersCount()}
         />
-
-        {/* Sticky Category Filter */}
-        <View style={styles.stickyFilterContainer}>
-          <CategoryFilter
-            selectedCategory={selectedCategory}
-            onCategorySelect={handleCategorySelect}
-          />
-        </View>
 
         {/* Content */}
-        <ScrollView 
+        <Animated.ScrollView 
           style={styles.content} 
           showsVerticalScrollIndicator={false}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -251,6 +286,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               colors={["#4A90E2"]}
             />
           }
+          contentContainerStyle={styles.scrollContent}
         >
           {showSearchResults ? (
             // Show search results
@@ -363,25 +399,79 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 </>
               )}
             </>
-          )}
-        </ScrollView>
-      </LinearGradient>
-    </ScreenWrapper>
-  );
-};
+                      )}
+          </Animated.ScrollView>
+        </LinearGradient>
+
+        {/* Search Modal */}
+        <Modal
+          visible={showSearchModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowSearchModal(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Search Shops</Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowSearchModal(false)}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <SearchBar
+              onSearch={(query) => {
+                handleSearch(query);
+                setShowSearchModal(false);
+              }}
+              onFilterChange={handleFilterChange}
+              placeholder="Search shops, products..."
+            />
+          </View>
+        </Modal>
+
+        {/* Filter Modal */}
+        <Modal
+          visible={showFilterModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowFilterModal(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filters</Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowFilterModal(false)}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <SearchBar
+              onSearch={handleSearch}
+              onFilterChange={(filters) => {
+                handleFilterChange(filters);
+                setShowFilterModal(false);
+              }}
+              placeholder="Search shops, products..."
+            />
+          </View>
+        </Modal>
+      </ScreenWrapper>
+    );
+  };
 
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
-  stickyFilterContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
   content: {
     flex: 1,
+    paddingTop: 280, // Account for dynamic header height
+  },
+  scrollContent: {
+    paddingBottom: 100, // Account for bottom navigation
   },
   searchResultsContainer: {
     marginBottom: 20,
@@ -394,5 +484,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     letterSpacing: -0.5,
   },
-
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+    paddingTop: Platform.OS === 'ios' ? 44 : 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  modalCloseText: {
+    fontSize: 20,
+    color: '#FFFFFF',
+  },
 }); 
