@@ -119,24 +119,21 @@ class ApiService {
       console.log(`✅ API request successful: ${endpoint}`);
       return data;
     } catch (error) {
-      console.error(`❌ API Error for ${endpoint}:`, error);
+      console.error('API request failed:', error);
       
-      // If it's a network error, try to use mock API as fallback
-      if (error.message.includes('Network request failed') || error.message.includes('fetch')) {
+      // Type guard for error handling
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('Network request failed') || errorMessage.includes('fetch')) {
         this.enableMockFallback();
-        console.log(`🔄 Attempting to use mock API for ${endpoint}`);
-        
-        // Try to call the mock API method if it exists
         const mockService = this.getApiService();
-        if (mockService !== this && typeof mockService[this.getMethodName(endpoint)] === 'function') {
-          try {
-            return await mockService[this.getMethodName(endpoint)](...this.getMethodArgs(endpoint, options));
-          } catch (mockError) {
-            console.error('Mock API also failed:', mockError);
-          }
-        }
         
-        throw new Error('Unable to connect to server. Please check your internet connection and try again.');
+        // Use type assertion for dynamic method access
+        const methodName = this.getMethodName(endpoint);
+        if (mockService !== this && typeof (mockService as any)[methodName] === 'function') {
+          console.log(`🔄 Falling back to mock API for: ${methodName}`);
+          return await (mockService as any)[methodName](...this.getMethodArgs(endpoint, options));
+        }
       }
       
       throw error;
@@ -407,37 +404,26 @@ class ApiService {
   }
 
   // Order Management
-  async getShopOrders(shopId: string, options: {
-    status?: string;
-    startDate?: string;
-    endDate?: string;
-    page?: number;
-    limit?: number;
-  } = {}): Promise<{
-    data: {
-      orders: any[];
-      pagination: {
-        currentPage: number;
-        totalPages: number;
-        totalOrders: number;
-        hasNext: boolean;
-        hasPrev: boolean;
-      };
+  async getShopOrders(shopId: string, options: any = {}): Promise<{ data: { orders: any[]; pagination: { currentPage: number; totalPages: number; totalOrders: number; hasNext: boolean; hasPrev: boolean; }; }; }> {
+    const response = await this.request(`/shops/${shopId}/orders`, {
+      method: 'GET',
+      body: JSON.stringify(options),
+    });
+    
+    // Transform the response to match expected format
+    const responseData = response.data as any;
+    return {
+      data: {
+        orders: responseData.orders || [],
+        pagination: responseData.pagination || {
+          currentPage: 1,
+          totalPages: 1,
+          totalOrders: 0,
+          hasNext: false,
+          hasPrev: false,
+        }
+      }
     };
-  }> {
-    if (USE_MOCK_API) {
-      return this.getApiService().getShopOrders(shopId, options);
-    }
-
-    const queryParams = new URLSearchParams();
-    if (options.status) queryParams.append('status', options.status);
-    if (options.startDate) queryParams.append('startDate', options.startDate);
-    if (options.endDate) queryParams.append('endDate', options.endDate);
-    if (options.page) queryParams.append('page', options.page.toString());
-    if (options.limit) queryParams.append('limit', options.limit.toString());
-
-    const response = await this.request(`/orders/shop/${shopId}?${queryParams.toString()}`);
-    return response;
   }
 
   async getOrder(orderId: string): Promise<{ data: any }> {

@@ -332,15 +332,80 @@ const styles = StyleSheet.create({
     fontSize: 64,
     opacity: 0.5,
   },
+  imageIndicators: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: 10,
+    left: 0,
+    right: 0,
+  },
+  imageIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginHorizontal: 4,
+  },
+  activeImageIndicator: {
+    backgroundColor: '#FFFFFF',
+  },
+  discountBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#FF4444',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  discountText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   productInfo: {
     paddingHorizontal: 20,
     paddingBottom: 100, // Space for bottom bar
+  },
+  productHeader: {
+    marginBottom: 20,
+  },
+  productTitleSection: {
+    marginBottom: 12,
   },
   productName: {
     fontSize: 24,
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 8,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  ratingText: {
+    fontSize: 14,
+    color: '#FFD700',
+    marginLeft: 4,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  originalPrice: {
+    fontSize: 16,
+    color: '#999999',
+    textDecorationLine: 'line-through',
+    marginRight: 8,
+  },
+  currentPrice: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#4A90E2',
   },
   productPrice: {
     fontSize: 20,
@@ -353,6 +418,42 @@ const styles = StyleSheet.create({
     color: '#CCCCCC',
     lineHeight: 24,
     marginBottom: 24,
+  },
+  descriptionContainer: {
+    marginBottom: 20,
+  },
+  readMoreButton: {
+    marginTop: 8,
+  },
+  readMoreText: {
+    color: '#4A90E2',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 20,
+  },
+  tag: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  tagText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  inventoryInfo: {
+    marginBottom: 20,
+  },
+  inventoryText: {
+    fontSize: 14,
+    color: '#CCCCCC',
   },
   detailsSection: {
     marginBottom: 24,

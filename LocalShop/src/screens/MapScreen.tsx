@@ -59,8 +59,10 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(shop => 
         shop.name.toLowerCase().includes(query) ||
-        shop.description.toLowerCase().includes(query) ||
-        shop.category.toLowerCase().includes(query)
+        shop.description?.toLowerCase().includes(query) ||
+        shop.category.toLowerCase().includes(query) ||
+        shop.location.city.toLowerCase().includes(query) ||
+        shop.location.state.toLowerCase().includes(query)
       );
     }
 
@@ -71,7 +73,7 @@ export const MapScreen: React.FC<MapScreenProps> = ({ navigation }) => {
 
     // Apply rating filter
     if (activeFilters.rating) {
-      filtered = filtered.filter(shop => shop.rating.average >= activeFilters.rating!);
+      filtered = filtered.filter(shop => shop.rating?.average && shop.rating.average >= activeFilters.rating!);
     }
 
     // Apply features filter

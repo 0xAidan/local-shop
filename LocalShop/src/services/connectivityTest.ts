@@ -29,26 +29,24 @@ export class ConnectivityTest {
       };
       
     } catch (error) {
-      console.error('❌ API connectivity test failed:', error);
+      console.error('Connectivity test failed:', error);
       
-      let message = 'API connectivity test failed';
-      let details = { error: error.message };
+      // Type guard for error handling
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      let details: any = { error: errorMessage };
       
-      if (error.message.includes('Network request failed')) {
-        message = 'Cannot connect to server. Please check your internet connection.';
+      if (errorMessage.includes('Network request failed')) {
         details.suggestion = 'Make sure both your phone and computer are on the same WiFi network.';
-      } else if (error.message.includes('fetch')) {
-        message = 'Network error occurred. Please try again.';
+      } else if (errorMessage.includes('fetch')) {
         details.suggestion = 'Check if the backend server is running.';
-      } else if (error.message.includes('CORS')) {
-        message = 'CORS error - server configuration issue.';
+      } else if (errorMessage.includes('CORS')) {
         details.suggestion = 'Backend needs to be restarted with updated CORS settings.';
       }
       
       return {
         success: false,
-        message,
-        details
+        message: 'Failed to connect to backend',
+        details,
       };
     }
   }

@@ -122,7 +122,7 @@ export const ShopMap: React.FC<ShopMapProps> = ({
                 <Text style={styles.calloutTitle}>{shop.name}</Text>
                 <Text style={styles.calloutCategory}>{shop.category}</Text>
                 <Text style={styles.calloutRating}>
-                  ⭐ {shop.rating.average} ({shop.rating.count} reviews)
+                  ⭐ {shop.rating?.average || 0} ({shop.rating?.count || 0} reviews)
                 </Text>
                 <TouchableOpacity
                   style={styles.calloutButton}

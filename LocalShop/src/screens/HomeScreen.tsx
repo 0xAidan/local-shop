@@ -145,7 +145,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     }
 
     if (activeFilters.rating) {
-      filtered = filtered.filter(shop => shop.rating?.average >= activeFilters.rating!);
+      filtered = filtered.filter(shop => shop.rating?.average && shop.rating.average >= activeFilters.rating!);
     }
 
     if (activeFilters.features && activeFilters.features.length > 0) {

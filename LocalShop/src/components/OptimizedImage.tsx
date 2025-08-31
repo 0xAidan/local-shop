@@ -69,7 +69,6 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         // Performance optimizations
         fadeDuration={300}
         progressiveRenderingEnabled={true}
-        cachePolicy="memory-disk"
       />
       
       {/* Loading indicator */}

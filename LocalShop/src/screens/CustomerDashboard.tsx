@@ -78,29 +78,49 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
       const mockOrders: Order[] = [
         {
           id: 1,
-          userId: user?._id || '',
-          shopId: '1',
+          userId: 'user1',
+          shopId: 'shop1',
           products: [
-            { productId: '1', quantity: 2, price: 5.99 },
-            { productId: '2', quantity: 1, price: 3.99 }
+            { productId: 'product1', quantity: 2, price: 15.99 },
+            { productId: 'product2', quantity: 1, price: 8.50 },
           ],
-          total: 15.97,
+          subtotal: 40.48,
+          tax: 3.24,
+          total: 43.72,
           status: 'completed',
-          pickupLocation: "Joe's Coffee Shop",
-          pickupTime: '2024-01-15T10:30:00Z',
+          paymentStatus: 'paid',
+          pickupLocation: '123 Main St',
+          pickupTime: '2024-01-15T10:00:00Z',
+          financials: {
+            platformFee: 2.00,
+            netAmount: 41.72,
+            currency: 'CAD',
+          },
+          returnEligible: false,
+          returnWindow: 7,
           createdAt: '2024-01-15T09:00:00Z',
         },
         {
           id: 2,
-          userId: user?._id || '',
-          shopId: '2',
+          userId: 'user1',
+          shopId: 'shop2',
           products: [
-            { productId: '3', quantity: 1, price: 12.99 }
+            { productId: 'product3', quantity: 1, price: 12.99 },
           ],
-          total: 12.99,
+          subtotal: 12.99,
+          tax: 1.04,
+          total: 14.03,
           status: 'ready',
-          pickupLocation: "Fresh Market Deli",
+          paymentStatus: 'paid',
+          pickupLocation: '456 Oak Ave',
           pickupTime: '2024-01-16T14:00:00Z',
+          financials: {
+            platformFee: 1.00,
+            netAmount: 13.03,
+            currency: 'CAD',
+          },
+          returnEligible: true,
+          returnWindow: 7,
           createdAt: '2024-01-16T12:30:00Z',
         }
       ];
@@ -124,8 +144,9 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
     navigation.navigate('ShopDetail', { shop });
   };
 
-  const handleRemoveFavorite = (shopId: number) => {
-    setFavorites(favorites.filter(shop => shop.id !== shopId));
+  const handleRemoveFavorite = (shopId: string | number) => {
+    // TODO: Implement remove from favorites
+    console.log('Remove from favorites:', shopId);
   };
 
   const getStatusColor = (status: string) => {

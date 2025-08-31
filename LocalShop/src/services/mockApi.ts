@@ -47,7 +47,14 @@ const mockShops: Shop[] = [
       state: 'ON',
       zipCode: 'P7A 1A1'
     },
-    owner: mockUsers[0],
+    owner: {
+      _id: mockUsers[0]._id,
+      id: mockUsers[0].id,
+      firstName: mockUsers[0].firstName,
+      lastName: mockUsers[0].lastName,
+      username: mockUsers[0].username,
+      avatar: mockUsers[0].avatar?.url,
+    },
     isActive: true,
     isVerified: true,
     rating: { average: 4.5, count: 12 },
@@ -65,7 +72,14 @@ const mockShops: Shop[] = [
       state: 'ON',
       zipCode: 'P7A 2B2'
     },
-    owner: mockUsers[0],
+    owner: {
+      _id: mockUsers[0]._id,
+      id: mockUsers[0].id,
+      firstName: mockUsers[0].firstName,
+      lastName: mockUsers[0].lastName,
+      username: mockUsers[0].username,
+      avatar: mockUsers[0].avatar?.url,
+    },
     isActive: true,
     isVerified: true,
     rating: { average: 4.8, count: 8 },
@@ -122,7 +136,13 @@ const mockOrders: Order[] = [
         productId: '1',
         quantity: 2,
         price: 4.99,
-        productType: 'stock'
+        productType: 'stock' as const,
+      },
+      {
+        productId: '2',
+        quantity: 1,
+        price: 3.99,
+        productType: 'stock' as const,
       }
     ],
     subtotal: 9.98,
@@ -141,16 +161,9 @@ const mockOrders: Order[] = [
     returnWindow: 30,
     createdAt: '2024-01-15T10:00:00Z',
     customer: {
-      userId: '2',
-      name: 'Jane Customer',
-      email: 'customer@test.com',
-      phone: '555-0123',
-      address: {
-        street: '789 Customer St',
-        city: 'Thunder Bay',
-        state: 'ON',
-        zipCode: 'P7A 3C3'
-      }
+      name: 'John Doe',
+      email: 'john@example.com',
+      phone: '+1234567890',
     },
     shop: {
       shopId: '1',
@@ -219,7 +232,6 @@ const mockOrders: Order[] = [
     returnWindow: 30,
     createdAt: '2024-01-15T11:00:00Z',
     customer: {
-      userId: '2',
       name: 'Jane Customer',
       email: 'customer@test.com',
       phone: '555-0123',
@@ -674,16 +686,9 @@ class MockApiService {
       returnWindow: 30,
       createdAt: new Date().toISOString(),
       customer: {
-        userId: this.currentUser._id,
         name: `${this.currentUser.firstName} ${this.currentUser.lastName}`,
         email: this.currentUser.email,
         phone: this.currentUser.phone || '',
-        address: {
-          street: '',
-          city: '',
-          state: '',
-          zipCode: ''
-        }
       },
       shop: {
         shopId: orderData.shopId,

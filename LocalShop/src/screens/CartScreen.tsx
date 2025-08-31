@@ -196,8 +196,8 @@ export const CartScreen: React.FC<CartScreenProps> = ({ navigation }) => {
 
           <EmptyState
             title="Your cart is empty"
-            description="Add some items from local shops to get started"
-            actionText="Browse Shops"
+            message="Add some items from local shops to get started"
+            actionText="Start Shopping"
             onAction={() => navigation.navigate('Home')}
           />
         </LinearGradient>

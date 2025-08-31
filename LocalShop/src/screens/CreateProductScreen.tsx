@@ -130,6 +130,14 @@ export const CreateProductScreen: React.FC = () => {
     setFormData(prev => ({
       ...prev,
       dietary: {
+        isGlutenFree: false,
+        isVegan: false,
+        isVegetarian: false,
+        isOrganic: false,
+        isHalal: false,
+        isKosher: false,
+        isDairyFree: false,
+        isNutFree: false,
         ...prev.dietary,
         [field]: value,
       },
@@ -140,6 +148,9 @@ export const CreateProductScreen: React.FC = () => {
     setFormData(prev => ({
       ...prev,
       origin: {
+        country: '',
+        region: '',
+        isLocal: false,
         ...prev.origin,
         [field]: value,
       },
@@ -621,10 +632,10 @@ export const CreateProductScreen: React.FC = () => {
                     <View key={option} style={styles.switchRow}>
                       <Text style={styles.switchLabel}>{option}</Text>
                       <Switch
-                        value={formData.dietary[key]}
+                        value={formData.dietary?.[key] || false}
                         onValueChange={(value) => updateDietary(key, value)}
                         trackColor={{ false: '#767577', true: '#667eea' }}
-                        thumbColor={formData.dietary[key] ? '#f4f3f4' : '#f4f3f4'}
+                        thumbColor={formData.dietary?.[key] ? '#f4f3f4' : '#f4f3f4'}
                       />
                     </View>
                   );

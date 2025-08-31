@@ -108,10 +108,10 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
       // Create orders for each shop
       const orderPromises = shopIds.map(async (shopId) => {
         const shopItems = cartItemsByShop[shopId];
-        const orderData = {
-          shopId,
+        return await apiService.createOrder({
+          shopId: shopId,
           items: shopItems.map(item => ({
-            productId: item.product._id || item.product.id,
+            productId: String(item.product._id || item.product.id),
             quantity: item.quantity,
             price: item.product.price,
             productType: item.product.productType || 'stock'
@@ -119,14 +119,12 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
           delivery: {
             method: selectedDeliveryOption,
             address: deliveryAddress,
-            instructions: specialInstructions
+            instructions: specialInstructions,
           },
           payment: {
-            method: selectedPaymentMethod
-          }
-        };
-
-        return await apiService.createOrder(orderData);
+            method: selectedPaymentMethod,
+          },
+        });
       });
 
       const orders = await Promise.all(orderPromises);
