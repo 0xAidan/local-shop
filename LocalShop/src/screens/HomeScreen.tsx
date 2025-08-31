@@ -231,11 +231,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           placeholder="Search shops, products..."
         />
 
-        {/* Category Filter */}
-        <CategoryFilter
-          selectedCategory={selectedCategory}
-          onCategorySelect={handleCategorySelect}
-        />
+        {/* Sticky Category Filter */}
+        <View style={styles.stickyFilterContainer}>
+          <CategoryFilter
+            selectedCategory={selectedCategory}
+            onCategorySelect={handleCategorySelect}
+          />
+        </View>
 
         {/* Content */}
         <ScrollView 
@@ -372,7 +374,12 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
-
+  stickyFilterContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
   content: {
     flex: 1,
   },

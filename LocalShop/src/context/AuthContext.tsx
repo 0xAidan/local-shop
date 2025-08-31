@@ -2,6 +2,12 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { apiService } from '../services/api';
 import { User } from '../types';
 
+// 🚨 DEVELOPMENT MODE: Authentication is bypassed for testing
+// TODO: Re-enable authentication when MVP is complete
+// - Uncomment useEffect and checkAuthentication
+// - Set isAuthenticated to false initially
+// - Restore proper user state management
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -37,29 +43,30 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // DEVELOPMENT MODE: Bypass authentication for testing
+  const [user, setUser] = useState<User | null>({
+    id: 'dev-user-1',
+    username: 'devuser',
+    email: 'dev@example.com',
+    firstName: 'Dev',
+    lastName: 'User',
+    role: 'customer',
+    phone: '+1234567890',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [currentViewMode, setCurrentViewMode] = useState<'customer' | 'shop_owner'>('customer');
 
-  useEffect(() => {
-    checkAuthentication();
-  }, []);
+  // DEVELOPMENT MODE: Skip authentication check
+  // useEffect(() => {
+  //   checkAuthentication();
+  // }, []);
 
   const checkAuthentication = async () => {
-    try {
-      if (apiService.isAuthenticated()) {
-        const userData = await apiService.getCurrentUser();
-        setUser(userData);
-        setIsAuthenticated(true);
-        // Set initial view mode based on user role
-        setCurrentViewMode(userData.role || 'customer');
-      }
-    } catch (error) {
-      console.log('User not authenticated');
-    } finally {
-      setIsLoading(false);
-    }
+    // DEVELOPMENT MODE: Skip authentication
+    setIsLoading(false);
   };
 
   const login = async (email: string, password: string) => {
@@ -99,7 +106,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const canSwitchToShopOwner = (): boolean => {
-    return user?.role === 'shop_owner';
+    // DEVELOPMENT MODE: Allow switching to shop owner for testing
+    return true;
   };
 
   const value = {

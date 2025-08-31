@@ -5,11 +5,11 @@ import {
   View,
   TouchableOpacity,
   Dimensions,
+  ImageBackground,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { User } from '../types';
-import { RoleSwitcher } from './RoleSwitcher';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -22,9 +22,12 @@ interface HomeHeaderProps {
 
 // City background images - you can add more cities here
 const getCityImage = (cityName: string) => {
-  // For now, we'll just use the fallback gradient
-  // You can add city images later by creating an assets/cities folder
-  return null;
+  const cityImages: Record<string, any> = {
+    'Thunder Bay': require('../../assets/cities/thunder-bay.png'), // You'll need to add this asset
+    // Add more cities as needed
+  };
+  
+  return cityImages[cityName] || null;
 };
 
 export const HomeHeader: React.FC<HomeHeaderProps> = ({
@@ -38,12 +41,28 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
     return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
   };
 
+  const cityImage = getCityImage(userLocation);
+
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f3460']}
-        style={styles.fallbackGradient}
-      />
+      {/* City Background Image */}
+      {cityImage ? (
+        <ImageBackground
+          source={cityImage}
+          style={styles.backgroundImage}
+          imageStyle={styles.backgroundImageStyle}
+        >
+          <LinearGradient
+            colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.8)', 'rgba(0,0,0,0.3)']}
+            style={styles.overlay}
+          />
+        </ImageBackground>
+      ) : (
+        <LinearGradient
+          colors={['#1a1a2e', '#16213e', '#0f3460']}
+          style={styles.fallbackGradient}
+        />
+      )}
 
       <View style={styles.content}>
         {/* City Name and Location */}
@@ -79,10 +98,6 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
           {/* Notification indicator */}
           <View style={styles.notificationDot} />
         </TouchableOpacity>
-
-        {/* Role Switcher - Development Mode */}
-        {/* TODO: Remove this when authentication is re-enabled */}
-        <RoleSwitcher />
       </View>
     </View>
   );
