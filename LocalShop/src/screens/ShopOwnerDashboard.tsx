@@ -22,6 +22,7 @@ export const ShopOwnerDashboard: React.FC = () => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [orderStats, setOrderStats] = useState<any>(null);
 
   const navigation = useNavigation();
 
@@ -33,6 +34,45 @@ export const ShopOwnerDashboard: React.FC = () => {
       ]);
       setUser(userData);
       setShops(shopsData);
+
+      // Load order statistics for all shops
+      if (shopsData.length > 0) {
+        try {
+          const statsPromises = shopsData.map(shop => 
+            apiService.getShopOrderStats(shop._id || shop.id || '')
+          );
+          const statsResults = await Promise.all(statsPromises);
+          
+          // Combine stats from all shops and add pending orders to each shop
+          const combinedStats = {
+            totalOrders: 0,
+            pendingOrders: 0,
+            totalRevenue: 0,
+            avgOrderValue: 0
+          };
+          
+          statsResults.forEach((result, index) => {
+            if (result.data) {
+              const pendingCount = result.data.statusCounts.pending?.count || 0;
+              combinedStats.totalOrders += result.data.totals.totalOrders || 0;
+              combinedStats.pendingOrders += pendingCount;
+              combinedStats.totalRevenue += result.data.totals.totalRevenue || 0;
+              
+              // Add pending orders count to the shop object
+              shopsData[index].pendingOrders = pendingCount;
+            }
+          });
+          
+          if (combinedStats.totalOrders > 0) {
+            combinedStats.avgOrderValue = combinedStats.totalRevenue / combinedStats.totalOrders;
+          }
+          
+          setOrderStats(combinedStats);
+          setShops([...shopsData]); // Update shops with pending order counts
+        } catch (error) {
+          console.error('Failed to load order stats:', error);
+        }
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to load dashboard data');
     } finally {
@@ -110,6 +150,23 @@ export const ShopOwnerDashboard: React.FC = () => {
             <Text style={styles.userName}>{user?.firstName} {user?.lastName}</Text>
           </View>
           <View style={styles.headerActions}>
+            {/* Notification Bell */}
+            <TouchableOpacity 
+              style={styles.notificationButton}
+              onPress={() => {
+                // TODO: Navigate to notifications screen
+                Alert.alert('Notifications', 'Notifications screen coming soon!');
+              }}
+            >
+              <Ionicons name="notifications" size={24} color="white" />
+              {orderStats && orderStats.pendingOrders > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {orderStats.pendingOrders > 9 ? '9+' : orderStats.pendingOrders}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
             {/* Role Switcher - Development Mode */}
             {/* TODO: Remove this when authentication is re-enabled */}
             <RoleSwitcher />
@@ -142,6 +199,32 @@ export const ShopOwnerDashboard: React.FC = () => {
             </View>
           </View>
         </View>
+
+        {/* Order Alerts */}
+        {orderStats && orderStats.pendingOrders > 0 && (
+          <View style={styles.alertContainer}>
+            <View style={styles.alertHeader}>
+              <Ionicons name="notifications" size={20} color="#FF9800" />
+              <Text style={styles.alertTitle}>Order Alerts</Text>
+            </View>
+            <View style={styles.alertContent}>
+              <View style={styles.alertItem}>
+                <View style={styles.alertBadge}>
+                  <Text style={styles.alertBadgeText}>{orderStats.pendingOrders}</Text>
+                </View>
+                <Text style={styles.alertText}>
+                  {orderStats.pendingOrders === 1 ? 'New order' : 'New orders'} waiting for confirmation
+                </Text>
+                <TouchableOpacity
+                  style={styles.alertAction}
+                  onPress={() => navigation.navigate('OrderManagement', { shop: shops[0] })}
+                >
+                  <Text style={styles.alertActionText}>View Orders</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Quick Actions */}
         <View style={styles.section}>
@@ -207,13 +290,20 @@ export const ShopOwnerDashboard: React.FC = () => {
                     <Text style={styles.shopName} numberOfLines={1}>
                       {shop.name}
                     </Text>
-                    <View style={[
-                      styles.statusBadge,
-                      { backgroundColor: shop.isActive ? '#4CAF50' : '#9E9E9E' }
-                    ]}>
-                      <Text style={styles.statusText}>
-                        {shop.isActive ? 'Active' : 'Inactive'}
-                      </Text>
+                    <View style={styles.headerRight}>
+                      <View style={[
+                        styles.statusBadge,
+                        { backgroundColor: shop.isActive ? '#4CAF50' : '#9E9E9E' }
+                      ]}>
+                        <Text style={styles.statusText}>
+                          {shop.isActive ? 'Active' : 'Inactive'}
+                        </Text>
+                      </View>
+                      {shop.pendingOrders > 0 && (
+                        <View style={styles.pendingOrdersBadge}>
+                          <Text style={styles.pendingOrdersText}>{shop.pendingOrders}</Text>
+                        </View>
+                      )}
                     </View>
                   </View>
                   <Text style={styles.shopCategory}>{shop.category}</Text>
@@ -293,6 +383,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  notificationButton: {
+    position: 'relative',
+    padding: 8,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#FF5722',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   welcomeText: {
     color: 'white',
@@ -455,10 +566,28 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 10,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 10,
+  },
+  pendingOrdersBadge: {
+    backgroundColor: '#FF9800',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  pendingOrdersText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   statusText: {
     color: 'white',
@@ -496,6 +625,66 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   orderManagementText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  alertContainer: {
+    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+    borderRadius: 15,
+    margin: 20,
+    marginTop: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 152, 0, 0.3)',
+  },
+  alertHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 152, 0, 0.2)',
+  },
+  alertTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FF9800',
+    marginLeft: 8,
+  },
+  alertContent: {
+    padding: 15,
+  },
+  alertItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  alertBadge: {
+    backgroundColor: '#FF9800',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  alertBadgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  alertText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#FF9800',
+    marginLeft: 12,
+    fontWeight: '500',
+  },
+  alertAction: {
+    backgroundColor: '#FF9800',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  alertActionText: {
     color: 'white',
     fontSize: 12,
     fontWeight: '600',

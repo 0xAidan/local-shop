@@ -3,6 +3,7 @@ const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const auth = require('../middleware/auth');
+const Notification = require('../models/Notification');
 
 // Create a new order
 router.post('/', auth, async (req, res) => {
@@ -112,6 +113,18 @@ router.post('/', auth, async (req, res) => {
     });
 
     await order.save();
+
+    // Create notification for shop owner
+    try {
+      const Shop = require('../models/Shop');
+      const shop = await Shop.findById(shopId);
+      if (shop && shop.owner) {
+        await Notification.createNewOrderNotification(order, shop.owner);
+      }
+    } catch (notificationError) {
+      console.error('Failed to create notification:', notificationError);
+      // Don't fail the order creation if notification fails
+    }
 
     res.status(201).json({
       success: true,
@@ -281,6 +294,18 @@ router.patch('/:orderId/status', auth, async (req, res) => {
     }
 
     await order.save();
+
+    // Create notification for shop owner about status change
+    try {
+      const Shop = require('../models/Shop');
+      const shop = await Shop.findById(order.shop.shopId);
+      if (shop && shop.owner) {
+        await Notification.createStatusChangeNotification(order, shop.owner, status);
+      }
+    } catch (notificationError) {
+      console.error('Failed to create status change notification:', notificationError);
+      // Don't fail the status update if notification fails
+    }
 
     res.json({
       success: true,

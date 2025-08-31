@@ -44,6 +44,8 @@ export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () =>
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundAmount, setRefundAmount] = useState('');
   const [refundReason, setRefundReason] = useState('');
+  const [showCompletionCelebration, setShowCompletionCelebration] = useState(false);
+  const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
 
   const statusFilters = [
     { key: 'all', label: 'All Orders', color: '#667eea' },
@@ -93,7 +95,22 @@ export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () =>
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     try {
       await apiService.updateOrderStatus(orderId, newStatus);
-      Alert.alert('Success', `Order status updated to ${newStatus}`);
+      
+      // Show success notification with different messages based on status
+      let message = `Order status updated to ${newStatus}`;
+      if (newStatus === 'completed') {
+        message = '🎉 Order completed successfully! Customer has been notified.';
+        // Show completion celebration
+        setCompletedOrderId(orderId);
+        setShowCompletionCelebration(true);
+        setTimeout(() => setShowCompletionCelebration(false), 3000);
+      } else if (newStatus === 'ready') {
+        message = '✅ Order is ready for pickup/delivery!';
+      } else if (newStatus === 'preparing') {
+        message = '👨‍🍳 Order preparation started!';
+      }
+      
+      Alert.alert('Success', message);
       loadOrders();
       loadStats();
     } catch (error) {
@@ -385,6 +402,25 @@ export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () =>
           </View>
         </View>
 
+        {/* Real-time Notifications */}
+        {orders.filter(o => o.status === 'pending').length > 0 && (
+          <View style={styles.notificationBanner}>
+            <Ionicons name="time" size={16} color="white" />
+            <Text style={styles.notificationText}>
+              {orders.filter(o => o.status === 'pending').length} order{orders.filter(o => o.status === 'pending').length > 1 ? 's' : ''} waiting for confirmation
+            </Text>
+          </View>
+        )}
+        
+        {orders.filter(o => o.status === 'ready').length > 0 && (
+          <View style={[styles.notificationBanner, { backgroundColor: '#4CAF50' }]}>
+            <Ionicons name="checkmark-circle" size={16} color="white" />
+            <Text style={styles.notificationText}>
+              {orders.filter(o => o.status === 'ready').length} order{orders.filter(o => o.status === 'ready').length > 1 ? 's' : ''} ready for pickup/delivery
+            </Text>
+          </View>
+        )}
+
         {/* Stats Overview */}
         {stats && (
           <View style={styles.statsContainer}>
@@ -463,6 +499,19 @@ export const OrderManagementScreen: React.FC<OrderManagementScreenProps> = () =>
 
         {renderOrderModal()}
         {renderRefundModal()}
+        
+        {/* Completion Celebration Modal */}
+        {showCompletionCelebration && (
+          <View style={styles.celebrationOverlay}>
+            <View style={styles.celebrationContent}>
+              <Text style={styles.celebrationEmoji}>🎉</Text>
+              <Text style={styles.celebrationTitle}>Order Completed!</Text>
+              <Text style={styles.celebrationSubtitle}>
+                Great job! This order has been successfully completed.
+              </Text>
+            </View>
+          </View>
+        )}
       </LinearGradient>
     </ScreenWrapper>
   );
@@ -493,6 +542,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'white',
     opacity: 0.8,
+  },
+  notificationBanner: {
+    backgroundColor: '#FF9800',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 10,
+    gap: 8,
+  },
+  notificationText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   statsContainer: {
     padding: 20,
@@ -756,5 +822,40 @@ const styles = StyleSheet.create({
   textArea: {
     height: 80,
     textAlignVertical: 'top',
+  },
+  celebrationOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  celebrationContent: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    maxWidth: width * 0.8,
+  },
+  celebrationEmoji: {
+    fontSize: 64,
+    marginBottom: 20,
+  },
+  celebrationTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  celebrationSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 }); 
