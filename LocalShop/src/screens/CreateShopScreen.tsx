@@ -110,12 +110,12 @@ export const CreateShopScreen: React.FC = () => {
     isPrimary?: boolean;
   }>>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [mapRegion, setMapRegion] = useState({
-    latitude: 43.6532, // Toronto coordinates as default
-    longitude: -79.3832,
-    latitudeDelta: 0.01,
-    longitudeDelta: 0.01,
-  });
+  const [mapRegion, setMapRegion] = useState<{
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  } | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [showProvinceModal, setShowProvinceModal] = useState(false);
   const [geocodedCoordinates, setGeocodedCoordinates] = useState<{
@@ -305,6 +305,7 @@ export const CreateShopScreen: React.FC = () => {
       } else {
         console.log('❌ Geocoding returned null coordinates');
         setGeocodedCoordinates(null);
+        setMapRegion(null);
       }
     } catch (error) {
       console.error('❌ Geocoding failed with error:', error);
@@ -329,17 +330,11 @@ export const CreateShopScreen: React.FC = () => {
 
   // Animate map when coordinates change
   useEffect(() => {
-    if (geocodedCoordinates && mapRef.current) {
-      const newRegion = {
-        latitude: geocodedCoordinates.latitude,
-        longitude: geocodedCoordinates.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      };
+    if (geocodedCoordinates && mapRegion && mapRef.current) {
       console.log('🗺️ Animating map to new coordinates:', geocodedCoordinates);
-      mapRef.current.animateToRegion(newRegion, 1000);
+      mapRef.current.animateToRegion(mapRegion, 1000);
     }
-  }, [geocodedCoordinates]);
+  }, [geocodedCoordinates, mapRegion]);
 
   const validateForm = (): boolean => {
     if (!formData.name.trim()) {
@@ -506,19 +501,19 @@ export const CreateShopScreen: React.FC = () => {
               {/* Map Preview */}
               <Text style={styles.label}>Location Preview</Text>
               <View style={styles.mapContainer}>
-                <MapView
-                  ref={mapRef}
-                  style={styles.map}
-                  region={mapRegion}
-                  showsUserLocation={false}
-                  showsMyLocationButton={false}
-                  onMapReady={() => {
-                    if (geocodedCoordinates) {
-                      console.log('🗺️ Map ready, animating to coordinates:', geocodedCoordinates);
-                    }
-                  }}
-                >
-                  {geocodedCoordinates && (
+                {mapRegion && geocodedCoordinates ? (
+                  <MapView
+                    ref={mapRef}
+                    style={styles.map}
+                    region={mapRegion}
+                    showsUserLocation={false}
+                    showsMyLocationButton={false}
+                    onMapReady={() => {
+                      if (geocodedCoordinates) {
+                        console.log('🗺️ Map ready, animating to coordinates:', geocodedCoordinates);
+                      }
+                    }}
+                  >
                     <Marker
                       coordinate={{
                         latitude: geocodedCoordinates.latitude,
@@ -528,16 +523,17 @@ export const CreateShopScreen: React.FC = () => {
                       description={formData.location.address}
                       pinColor="#4A90E2"
                     />
-                  )}
-                </MapView>
-                {isGeocoding && (
-                  <View style={styles.geocodingOverlay}>
-                    <Text style={styles.geocodingText}>Updating location...</Text>
-                  </View>
-                )}
-                {!geocodedCoordinates && !isGeocoding && formData.location.address && (
-                  <View style={styles.geocodingOverlay}>
-                    <Text style={styles.geocodingText}>Enter address details to see location</Text>
+                  </MapView>
+                ) : (
+                  <View style={styles.mapPlaceholder}>
+                    <Text style={styles.mapPlaceholderText}>
+                      {isGeocoding 
+                        ? 'Updating location...' 
+                        : formData.location.address && formData.location.city && formData.location.province
+                        ? 'Loading location preview...'
+                        : 'Enter address details to see location preview'
+                      }
+                    </Text>
                   </View>
                 )}
               </View>
@@ -799,6 +795,20 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  mapPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    borderRadius: 12,
+  },
+  mapPlaceholderText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   geocodingOverlay: {
     position: 'absolute',
