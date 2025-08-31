@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -124,6 +124,7 @@ export const CreateShopScreen: React.FC = () => {
   } | null>(null);
 
   const navigation = useNavigation();
+  const mapRef = useRef<MapView>(null);
 
   const updateFormData = (field: string, value: any) => {
     setFormData(prev => ({
@@ -294,6 +295,12 @@ export const CreateShopScreen: React.FC = () => {
         console.log('📍 Setting new mapRegion:', newMapRegion);
         setMapRegion(newMapRegion);
         
+        // Force map to animate to new region
+        if (mapRef.current) {
+          console.log('🗺️ Animating map to new region');
+          mapRef.current.animateToRegion(newMapRegion, 1000);
+        }
+        
         console.log('📍 State updates scheduled');
       } else {
         console.log('❌ Geocoding returned null coordinates');
@@ -319,6 +326,20 @@ export const CreateShopScreen: React.FC = () => {
     console.log('🗺️ Map state changed - region:', mapRegion);
     console.log('🗺️ Map state changed - geocodedCoordinates:', geocodedCoordinates);
   }, [mapRegion, geocodedCoordinates]);
+
+  // Animate map when coordinates change
+  useEffect(() => {
+    if (geocodedCoordinates && mapRef.current) {
+      const newRegion = {
+        latitude: geocodedCoordinates.latitude,
+        longitude: geocodedCoordinates.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      console.log('🗺️ Animating map to new coordinates:', geocodedCoordinates);
+      mapRef.current.animateToRegion(newRegion, 1000);
+    }
+  }, [geocodedCoordinates]);
 
   const validateForm = (): boolean => {
     if (!formData.name.trim()) {
@@ -486,10 +507,16 @@ export const CreateShopScreen: React.FC = () => {
               <Text style={styles.label}>Location Preview</Text>
               <View style={styles.mapContainer}>
                 <MapView
+                  ref={mapRef}
                   style={styles.map}
                   region={mapRegion}
                   showsUserLocation={false}
                   showsMyLocationButton={false}
+                  onMapReady={() => {
+                    if (geocodedCoordinates) {
+                      console.log('🗺️ Map ready, animating to coordinates:', geocodedCoordinates);
+                    }
+                  }}
                 >
                   {geocodedCoordinates && (
                     <Marker
