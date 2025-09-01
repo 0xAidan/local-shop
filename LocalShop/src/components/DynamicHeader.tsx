@@ -55,13 +55,7 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
     return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
   };
 
-  // Animated values for main header elements (fade out)
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
-    outputRange: [1, 0.8, 0.6],
-    extrapolate: 'clamp',
-  });
-
+  // Main header elements fade out
   const titleOpacity = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
     outputRange: [1, 0.5, 0],
@@ -93,10 +87,10 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
     extrapolate: 'clamp',
   });
 
-  // Category filters move to top and shrink to icons
+  // Category filters move to just below location/profile buttons
   const categoryFilterTranslateY = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [0, -HEADER_SCROLL_DISTANCE + 80], // Move to top of screen
+    outputRange: [0, -HEADER_SCROLL_DISTANCE + 120], // Position just below top row
     extrapolate: 'clamp',
   });
 
@@ -125,8 +119,8 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Only show background when not scrolled */}
-      <Animated.View style={[styles.background, { opacity: headerOpacity }]}>
+      {/* Background only shows when not scrolled */}
+      <Animated.View style={[styles.background, { opacity: titleOpacity }]}>
         <LinearGradient
           colors={['#1a1a2e', '#16213e', '#0f3460']}
           style={styles.gradient}
@@ -134,7 +128,7 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
       </Animated.View>
       
       <View style={styles.content}>
-        {/* Top Row - Location and Avatar (fade out) */}
+        {/* Top Row - Location and Avatar (always visible) */}
         <View style={styles.topRow}>
           <Animated.View style={{ transform: [{ scale: locationScale }] }}>
             <TouchableOpacity 
@@ -189,7 +183,7 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
           />
         </Animated.View>
 
-        {/* Category Filter (moves to top and shrinks to icons) */}
+        {/* Category Filter (moves to just below location/profile buttons) */}
         <Animated.View 
           style={[
             styles.categorySection, 

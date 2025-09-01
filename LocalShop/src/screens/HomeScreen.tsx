@@ -239,10 +239,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   return (
     <ScreenWrapper showBottomPadding={false}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
-      <LinearGradient
-        colors={['#000000', '#1a1a1a']}
-        style={styles.gradient}
-      >
+      <View style={styles.container}>
         {/* Dynamic Header */}
         <DynamicHeader
           user={user}
@@ -257,8 +254,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           onLocationPress={handleLocationPress}
           scrollY={scrollY}
         />
-
-
 
         {/* Content */}
         <Animated.ScrollView 
@@ -392,7 +387,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             </>
                       )}
           </Animated.ScrollView>
-        </LinearGradient>
+        </View>
 
         {/* Search Modal */}
         <Modal
@@ -454,8 +449,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
 const styles = StyleSheet.create({
-  gradient: {
+  container: {
     flex: 1,
+    backgroundColor: '#000000',
   },
   content: {
     flex: 1,
