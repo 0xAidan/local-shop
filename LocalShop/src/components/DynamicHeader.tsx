@@ -90,7 +90,7 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
   // Category filters move to just below location/profile buttons
   const categoryFilterTranslateY = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [0, -HEADER_SCROLL_DISTANCE + 100], // Move to below location selector
+    outputRange: [0, -HEADER_SCROLL_DISTANCE + 50], // Move to TOP of screen, below location selector
     extrapolate: 'clamp',
   });
 
@@ -315,8 +315,10 @@ const styles = StyleSheet.create({
     zIndex: 1001,
   },
   categorySection: {
-    marginBottom: spacing.sm,
-    position: 'relative',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     zIndex: 1000,
   },
   roleSwitcherContainer: {
