@@ -9,7 +9,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { User } from '../types';
-import { RoleSwitcher } from './RoleSwitcher';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -79,10 +78,6 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
           {/* Notification indicator */}
           <View style={styles.notificationDot} />
         </TouchableOpacity>
-
-        {/* Role Switcher - Development Mode */}
-        {/* TODO: Remove this when authentication is re-enabled */}
-        <RoleSwitcher />
       </View>
     </View>
   );

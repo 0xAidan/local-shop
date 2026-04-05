@@ -15,7 +15,6 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { apiService } from '../services/api';
 import { Shop, User } from '../types';
-import { RoleSwitcher } from '../components/RoleSwitcher';
 
 const { width } = Dimensions.get('window');
 
@@ -177,9 +176,6 @@ export const ShopOwnerDashboard: React.FC = () => {
                 </View>
               )}
             </TouchableOpacity>
-            {/* Role Switcher - Development Mode */}
-            {/* TODO: Remove this when authentication is re-enabled */}
-            <RoleSwitcher />
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
               <Text style={styles.logoutText}>Logout</Text>
             </TouchableOpacity>

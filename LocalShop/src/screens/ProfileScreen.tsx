@@ -15,14 +15,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
 import { ScreenWrapper } from '../components/ScreenWrapper';
-import { RoleSwitcher } from '../components/RoleSwitcher';
+import { apiService } from '../services/api';
 
 interface ProfileScreenProps {
   navigation: any;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
-  const { user, logout, currentViewMode, switchViewMode, canSwitchToShopOwner } = useAuth();
+  const { user, logout, refreshUser, currentViewMode, switchViewMode, canSwitchToShopOwner } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editedUser, setEditedUser] = useState<User | null>(user);
 
@@ -62,8 +62,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   };
 
   const handleSave = async () => {
+    if (!editedUser) return;
     try {
-      // TODO: Implement API call to update user profile
+      await apiService.updateProfile({
+        firstName: editedUser.firstName,
+        lastName: editedUser.lastName,
+        phone: editedUser.phone,
+        location: editedUser.location,
+      });
+      await refreshUser();
       setIsEditing(false);
       Alert.alert('Success', 'Profile updated successfully!');
     } catch (error) {
@@ -146,9 +153,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
           <View style={styles.headerActions}>
-            {/* Role Switcher - Development Mode */}
-            {/* TODO: Remove this when authentication is re-enabled */}
-            <RoleSwitcher />
             {isEditing ? (
               <>
                 <TouchableOpacity
