@@ -173,7 +173,7 @@ router.post('/',
         tags,
         features,
         images,
-        owner: req.user.id
+        owner: req.user._id
       };
 
       const shop = new Shop(shopData);
@@ -213,7 +213,7 @@ router.put('/:id',
       }
 
       // Check if user owns this shop
-      if (shop.owner.toString() !== req.user.id) {
+      if (shop.owner.toString() !== req.user._id.toString()) {
         return res.status(403).json({
           success: false,
           message: 'Not authorized to update this shop'
@@ -257,7 +257,7 @@ router.delete('/:id',
       }
 
       // Check if user owns this shop
-      if (shop.owner.toString() !== req.user.id) {
+      if (shop.owner.toString() !== req.user._id.toString()) {
         return res.status(403).json({
           success: false,
           message: 'Not authorized to delete this shop'
@@ -286,7 +286,7 @@ router.get('/user/me',
   requireShopOwner,
   async (req, res) => {
     try {
-      const shops = await Shop.find({ owner: req.user.id })
+      const shops = await Shop.find({ owner: req.user._id })
         .populate('owner', 'firstName lastName username avatar')
         .sort({ createdAt: -1 });
 

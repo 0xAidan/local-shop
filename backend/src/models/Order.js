@@ -97,11 +97,20 @@ const orderSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  discountAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  couponCode: String,
   total: {
     type: Number,
     required: true,
     min: 0
   },
+
+  paymentIntentId: String,
+  stripeChargeId: String,
 
   // Delivery information
   delivery: {
@@ -171,6 +180,17 @@ const orderSchema = new mongoose.Schema({
   },
   returnDeadline: {
     type: Date
+  },
+
+  refund: {
+    amount: Number,
+    reason: String,
+    processedAt: Date,
+    processedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    stripeRefundId: String
   },
 
   // Timestamps
