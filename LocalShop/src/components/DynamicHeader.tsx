@@ -14,7 +14,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { SearchBar, SearchFilters } from './SearchBar';
 import { CategoryFilter, Category } from './CategoryFilter';
 import { User } from '../types';
-import { RoleSwitcher } from './RoleSwitcher';
 import { scale, fontSize, spacing } from '../utils/responsive';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -200,14 +199,9 @@ export const DynamicHeader: React.FC<DynamicHeaderProps> = ({
             selectedCategory={selectedCategory}
             onCategorySelect={onCategorySelect}
             compact={isCompact}
-            onSearchPress={onSearch}
+            onSearchPress={() => onSearch(searchQuery)}
           />
         </Animated.View>
-
-        {/* Role Switcher - Development Mode */}
-        <View style={styles.roleSwitcherContainer}>
-          <RoleSwitcher />
-        </View>
       </View>
     </View>
   );
@@ -318,10 +312,5 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     position: 'relative',
     zIndex: 1000,
-  },
-  roleSwitcherContainer: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 20,
-    right: spacing.lg,
   },
 }); 

@@ -15,10 +15,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { Shop } from '../types';
 import { apiService } from '../services/api';
-import { RoleSwitcher } from '../components/RoleSwitcher';
 import { ResponsiveButton } from '../components/ResponsiveButton';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+const getShopId = (shop: Shop): string => {
+  const raw = shop._id ?? shop.id;
+  return raw != null ? String(raw) : '';
+};
 
 interface MyShopsScreenProps {
   navigation: any;
@@ -37,46 +41,13 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
   const loadShops = async () => {
     try {
       setIsLoading(true);
-      // TODO: Replace with real API call when backend is connected
-      // const response = await apiService.getMyShops();
-      // setShops(response.data);
-      
-      // For now, use mock data
-      const mockShops: Shop[] = [
-        {
-          id: 1,
-          name: "Joe's Coffee Shop",
-          description: "The best coffee in town",
-          category: "Coffee",
-          location: {
-            address: "123 Main St",
-            coordinates: { latitude: 48.3809, longitude: -89.2477 },
-            city: "Thunder Bay",
-            province: "ON",
-            postalCode: "P7A 1A1"
-          },
-          rating: { average: 4.5, count: 12 },
-          isActive: true,
-          isVerified: true,
-        },
-        {
-          id: 2,
-          name: "Fresh Market Deli",
-          description: "Fresh local produce and deli items",
-          category: "Grocery",
-          location: {
-            address: "456 Park Ave",
-            coordinates: { latitude: 48.3809, longitude: -89.2477 },
-            city: "Thunder Bay",
-            province: "ON",
-            postalCode: "P7A 2B2"
-          },
-          rating: { average: 4.2, count: 8 },
-          isActive: true,
-          isVerified: false,
-        }
-      ];
-      setShops(mockShops);
+      const list = await apiService.getUserShops();
+      const normalized: Shop[] = list.map((s) => ({
+        ...s,
+        _id: s._id ?? (s.id != null ? String(s.id) : undefined),
+        id: s.id ?? (s._id != null ? String(s._id) : undefined),
+      }));
+      setShops(normalized);
     } catch (error) {
       console.error('Error loading shops:', error);
       Alert.alert('Error', 'Failed to load shops. Please try again.');
@@ -113,14 +84,13 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
   };
 
   const handleToggleShopStatus = async (shop: Shop) => {
+    const sid = getShopId(shop);
+    if (!sid) return;
     try {
-      // TODO: Implement API call to toggle shop status
-      const updatedShops = shops.map(s => 
-        s.id === shop.id 
-          ? { ...s, isActive: !s.isActive }
-          : s
+      const updated = await apiService.updateShop(sid, { isActive: !shop.isActive });
+      setShops((prev) =>
+        prev.map((s) => (getShopId(s) === sid ? { ...s, ...updated, _id: sid, id: sid } : s))
       );
-      setShops(updatedShops);
       Alert.alert('Success', `Shop ${shop.isActive ? 'deactivated' : 'activated'} successfully!`);
     } catch (error) {
       console.error('Error toggling shop status:', error);
@@ -142,9 +112,10 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              // TODO: Implement API call to delete shop
-              const updatedShops = shops.filter(s => s.id !== shop.id);
-              setShops(updatedShops);
+              const sid = getShopId(shop);
+              if (!sid) return;
+              await apiService.deleteShop(sid);
+              setShops((prev) => prev.filter((s) => getShopId(s) !== sid));
               Alert.alert('Success', 'Shop deleted successfully!');
             } catch (error) {
               console.error('Error deleting shop:', error);
@@ -253,9 +224,6 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>My Shops</Text>
           <View style={styles.headerActions}>
-            {/* Role Switcher - Development Mode */}
-            {/* TODO: Remove this when authentication is re-enabled */}
-            <RoleSwitcher />
             <TouchableOpacity
               style={styles.createButton}
               onPress={handleCreateShop}

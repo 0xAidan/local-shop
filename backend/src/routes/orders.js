@@ -1,145 +1,68 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const { authenticateToken } = require('../middleware/auth');
 const Notification = require('../models/Notification');
+const { getStripe } = require('../config/stripe');
 
-// Create a new order
+const userOwnsShop = (user, shopRef) => {
+  const idStr =
+    shopRef && typeof shopRef === 'object' && shopRef.toString
+      ? shopRef.toString()
+      : String(shopRef);
+  const shops = user.shops || [];
+  return shops.some((s) => s != null && s.toString() === idStr);
+};
+
+// Orders are created via Stripe checkout (POST /api/checkout/create-payment-intent).
 router.post('/', authenticateToken, async (req, res) => {
+  return res.status(400).json({
+    success: false,
+    message:
+      'Direct order creation is disabled. Use POST /api/checkout/create-payment-intent with Stripe PaymentSheet, then complete payment.',
+  });
+});
+
+// List orders for the authenticated customer
+router.get('/my-orders', authenticateToken, async (req, res) => {
   try {
-    const { shopId, items, delivery, payment } = req.body;
-    const user = req.user;
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const userId = req.user._id;
 
-    // Validate required fields
-    if (!shopId || !items || !delivery || !payment) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields: shopId, items, delivery, payment'
-      });
-    }
+    const [orders, totalOrders] = await Promise.all([
+      Order.find({ 'customer.userId': userId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit, 10))
+        .populate('shop.shopId', 'name location category')
+        .populate('items.product', 'name images'),
+      Order.countDocuments({ 'customer.userId': userId }),
+    ]);
 
-    // Get shop information
-    const Shop = require('../models/Shop');
-    const shop = await Shop.findById(shopId);
-    if (!shop) {
-      return res.status(404).json({
-        success: false,
-        message: 'Shop not found'
-      });
-    }
-
-    // Calculate order totals
-    let subtotal = 0;
-    const orderItems = [];
-
-    for (const item of items) {
-      const product = await Product.findById(item.productId);
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          message: `Product ${item.productId} not found`
-        });
-      }
-
-      // Check inventory for stock products
-      if (product.productType === 'stock' && product.inventory) {
-        if (product.inventory.quantity < item.quantity) {
-          return res.status(400).json({
-            success: false,
-            message: `Insufficient inventory for ${product.name}. Available: ${product.inventory.quantity}`
-          });
-        }
-        // Reduce inventory
-        product.inventory.quantity -= item.quantity;
-        await product.save();
-      }
-
-      const itemTotal = item.price * item.quantity;
-      subtotal += itemTotal;
-
-      orderItems.push({
-        product: item.productId,
-        name: product.name,
-        quantity: item.quantity,
-        unitPrice: item.price,
-        totalPrice: itemTotal,
-        productType: product.productType || 'stock'
-      });
-    }
-
-    const tax = subtotal * 0.08; // 8% tax
-    const deliveryFee = delivery.method === 'pickup' ? 0 : 2.99;
-    const total = subtotal + tax + deliveryFee;
-    const platformFee = total * 0.029 + 0.30; // 2.9% + $0.30
-    const netAmount = total - platformFee;
-
-    // Create order
-    const order = new Order({
-      customer: {
-        userId: user._id,
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.email,
-        phone: user.phone,
-        address: user.location
-      },
-      shop: {
-        shopId: shop._id,
-        name: shop.name,
-        location: shop.location
-      },
-      items: orderItems,
-      subtotal,
-      tax,
-      deliveryFee,
-      total,
-      delivery: {
-        method: delivery.method,
-        address: delivery.address,
-        instructions: delivery.instructions,
-        estimatedTime: delivery.method === 'pickup' ? '15-30 mins' : '2-4 hours'
-      },
-      payment: {
-        method: payment.method,
-        status: 'paid',
-        transactionId: `txn_${Date.now()}`,
-        paidAt: new Date()
-      },
-      financials: {
-        platformFee,
-        netAmount,
-        currency: 'CAD'
-      }
-    });
-
-    await order.save();
-
-    // Create notification for shop owner
-    try {
-      const Shop = require('../models/Shop');
-      const shop = await Shop.findById(shopId);
-      if (shop && shop.owner) {
-        await Notification.createNewOrderNotification(order, shop.owner);
-      }
-    } catch (notificationError) {
-      console.error('Failed to create notification:', notificationError);
-      // Don't fail the order creation if notification fails
-    }
-
-    res.status(201).json({
+    res.json({
       success: true,
-      message: 'Order created successfully',
-      data: order
+      data: {
+        orders,
+        pagination: {
+          currentPage: parseInt(page, 10),
+          totalPages: Math.ceil(totalOrders / parseInt(limit, 10)),
+          totalOrders,
+          hasNext: parseInt(page, 10) * parseInt(limit, 10) < totalOrders,
+          hasPrev: parseInt(page, 10) > 1,
+        },
+      },
     });
   } catch (error) {
-    console.error('Error creating order:', error);
+    console.error('Error fetching customer orders:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to create order'
+      message: 'Failed to fetch orders',
     });
   }
 });
-const mongoose = require('mongoose');
 
 // Get all orders for a shop (shop owner only)
 router.get('/shop/:shopId', authenticateToken, async (req, res) => {
@@ -149,9 +72,8 @@ router.get('/shop/:shopId', authenticateToken, async (req, res) => {
     
     // Verify the user owns this shop
     const user = req.user;
-    const userShops = user.shops || [];
     
-    if (!userShops.includes(shopId)) {
+    if (!userOwnsShop(user, shopId)) {
       return res.status(403).json({ 
         success: false, 
         message: 'Access denied. You can only view orders for your own shops.' 
@@ -221,7 +143,7 @@ router.get('/:orderId', authenticateToken, async (req, res) => {
     // Verify access - either customer or shop owner
     const user = req.user;
     const isCustomer = order.customer.userId.toString() === user._id.toString();
-    const isShopOwner = user.shops && user.shops.includes(order.shop.shopId.toString());
+    const isShopOwner = userOwnsShop(user, order.shop.shopId);
 
     if (!isCustomer && !isShopOwner) {
       return res.status(403).json({ 
@@ -259,7 +181,7 @@ router.patch('/:orderId/status', authenticateToken, async (req, res) => {
     }
 
     // Verify the user owns this shop
-    if (!user.shops || !user.shops.includes(order.shop.shopId.toString())) {
+    if (!userOwnsShop(user, order.shop.shopId)) {
       return res.status(403).json({ 
         success: false, 
         message: 'Access denied. You can only update orders for your own shops.' 
@@ -337,7 +259,7 @@ router.post('/:orderId/refund', authenticateToken, async (req, res) => {
     }
 
     // Verify the user owns this shop
-    if (!user.shops || !user.shops.includes(order.shop.shopId.toString())) {
+    if (!userOwnsShop(user, order.shop.shopId)) {
       return res.status(403).json({ 
         success: false, 
         message: 'Access denied. You can only refund orders for your own shops.' 
@@ -367,25 +289,45 @@ router.post('/:orderId/refund', authenticateToken, async (req, res) => {
       });
     }
 
-    // Process refund
-    order.status = 'refunded';
-    order.payment.status = 'refunded';
-    order.statusUpdatedAt = new Date();
+    const isFullRefund = refundAmount >= order.total - 0.005;
+    const stripe = getStripe();
+    let stripeRefundId;
 
-    // Add refund details
+    if (order.paymentIntentId) {
+      if (!stripe) {
+        return res.status(503).json({
+          success: false,
+          message: 'Refunds require STRIPE_SECRET_KEY to be configured',
+        });
+      }
+      const amountCents = Math.round(refundAmount * 100);
+      const sr = await stripe.refunds.create({
+        payment_intent: order.paymentIntentId,
+        amount: amountCents,
+        reason: 'requested_by_customer',
+      });
+      stripeRefundId = sr.id;
+    }
+
+    order.statusUpdatedAt = new Date();
     order.refund = {
       amount: refundAmount,
       reason,
       processedAt: new Date(),
-      processedBy: user._id
+      processedBy: user._id,
+      stripeRefundId,
     };
 
-    // Restore inventory for refunded items
-    if (items && items.length > 0) {
-      await restoreInventory(items);
+    if (isFullRefund) {
+      order.status = 'refunded';
+      order.payment.status = 'refunded';
+      if (items && items.length > 0) {
+        await restoreInventory(items);
+      } else {
+        await restoreInventory(order.items);
+      }
     } else {
-      // Full refund - restore all items
-      await restoreInventory(order.items);
+      order.payment.status = 'partially_refunded';
     }
 
     await order.save();
@@ -412,7 +354,7 @@ router.get('/shop/:shopId/stats', authenticateToken, async (req, res) => {
     
     // Verify the user owns this shop
     const user = req.user;
-    if (!user.shops || !user.shops.includes(shopId)) {
+    if (!userOwnsShop(user, shopId)) {
       return res.status(403).json({ 
         success: false, 
         message: 'Access denied' 

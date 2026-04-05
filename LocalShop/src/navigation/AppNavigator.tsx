@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Dimensions, View, Text } from 'react-native';
+import { Platform, Dimensions, View, Text, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -51,6 +51,7 @@ const CustomerTabNavigator = () => {
   
   return (
     <Tab.Navigator
+      id={undefined}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -188,6 +189,7 @@ const CustomerTabNavigator = () => {
 const ShopOwnerTabNavigator = () => {
   return (
     <Tab.Navigator
+      id={undefined}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -286,12 +288,17 @@ export const AppNavigator: React.FC = () => {
   const { user, isAuthenticated, isLoading, currentViewMode } = useAuth();
 
   if (isLoading) {
-    return null; // You can add a loading screen here
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#4A90E2" accessibilityLabel="Loading" />
+      </View>
+    );
   }
 
   return (
     <NavigationContainer>
       <Stack.Navigator
+        id={undefined}
         screenOptions={{
           headerShown: false,
           cardStyle: { backgroundColor: '#000000' },

@@ -12,22 +12,16 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { StripeProvider, useStripe } from '@stripe/stripe-react-native';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import { apiService } from '../services/api';
 import * as Haptics from 'expo-haptics';
+import { getStripeMerchantId, getStripePublishableKey } from '../config/env';
 
 interface CheckoutScreenProps {
   navigation: any;
-}
-
-interface PaymentMethod {
-  id: string;
-  type: 'card' | 'apple_pay' | 'google_pay' | 'paypal';
-  name: string;
-  icon: string;
-  lastFour?: string;
 }
 
 interface DeliveryOption {
@@ -39,11 +33,11 @@ interface DeliveryOption {
   icon: string;
 }
 
-export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) => {
-  const { items, totalPrice, clearCart, getCartItemsByShop } = useCart();
+const CheckoutContent: React.FC<CheckoutScreenProps> = ({ navigation }) => {
+  const { totalPrice, clearCart, getCartItemsByShop } = useCart();
   const { user } = useAuth();
-  
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card1');
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+
   const [selectedDeliveryOption, setSelectedDeliveryOption] = useState<string>('standard');
   const [deliveryAddress, setDeliveryAddress] = useState({
     street: user?.location?.address || '',
@@ -52,14 +46,8 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
     postalCode: user?.location?.postalCode || '',
   });
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [couponCode, setCouponCode] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-
-  const paymentMethods: PaymentMethod[] = [
-    { id: 'card1', type: 'card', name: 'Credit Card', icon: 'card', lastFour: '4242' },
-    { id: 'apple_pay', type: 'apple_pay', name: 'Apple Pay', icon: 'logo-apple' },
-    { id: 'google_pay', type: 'google_pay', name: 'Google Pay', icon: 'logo-google' },
-    { id: 'paypal', type: 'paypal', name: 'PayPal', icon: 'logo-paypal' },
-  ];
 
   const deliveryOptions: DeliveryOption[] = [
     {
@@ -90,65 +78,97 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
 
   const cartItemsByShop = getCartItemsByShop();
   const shopIds = Object.keys(cartItemsByShop);
-  const selectedDelivery = deliveryOptions.find(option => option.id === selectedDeliveryOption);
+  const singleShopId = shopIds.length === 1 ? shopIds[0] : null;
+  const selectedDelivery = deliveryOptions.find((option) => option.id === selectedDeliveryOption);
   const deliveryFee = selectedDelivery?.price || 0;
-  const tax = totalPrice * 0.08; // 8% tax
+  const tax = totalPrice * 0.08;
   const finalTotal = totalPrice + deliveryFee + tax;
 
   const handlePlaceOrder = async () => {
-    if (!deliveryAddress.street || !deliveryAddress.city) {
-      Alert.alert('Missing Information', 'Please fill in your delivery address.');
+    if (shopIds.length !== 1 || !singleShopId) {
+      Alert.alert(
+        'One shop at a time',
+        'Checkout with Stripe currently supports items from a single shop. Remove items from other shops or place separate orders.',
+      );
       return;
+    }
+
+    if (selectedDeliveryOption !== 'pickup') {
+      if (!deliveryAddress.street || !deliveryAddress.city) {
+        Alert.alert('Missing Information', 'Please fill in your delivery address.');
+        return;
+      }
     }
 
     setIsProcessing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      // Create orders for each shop
-      const orderPromises = shopIds.map(async (shopId) => {
-        const shopItems = cartItemsByShop[shopId];
-        return await apiService.createOrder({
-          shopId: shopId,
-          items: shopItems.map(item => ({
-            productId: String(item.product._id || item.product.id),
-            quantity: item.quantity,
-            price: item.product.price,
-            productType: item.product.productType || 'stock'
-          })),
-          delivery: {
-            method: selectedDeliveryOption,
-            address: deliveryAddress,
-            instructions: specialInstructions,
-          },
-          payment: {
-            method: selectedPaymentMethod,
-          },
-        });
+      const shopItems = cartItemsByShop[singleShopId];
+      const checkout = await apiService.createCheckoutPaymentIntent({
+        shopId: singleShopId,
+        items: shopItems.map((item) => ({
+          productId: String(item.product._id || item.product.id),
+          quantity: item.quantity,
+        })),
+        delivery: {
+          method: selectedDeliveryOption,
+          address:
+            selectedDeliveryOption === 'pickup'
+              ? undefined
+              : {
+                  street: deliveryAddress.street,
+                  city: deliveryAddress.city,
+                  state: deliveryAddress.province,
+                  zipCode: deliveryAddress.postalCode,
+                },
+          instructions: specialInstructions || undefined,
+        },
+        payment: { method: 'card' },
+        couponCode: couponCode.trim() || undefined,
       });
 
-      const orders = await Promise.all(orderPromises);
-      
-      // Clear cart after successful order
+      const { error: initError } = await initPaymentSheet({
+        paymentIntentClientSecret: checkout.clientSecret,
+        merchantDisplayName: 'LocalShop',
+        returnURL: 'localshop://stripe-redirect',
+      });
+
+      if (initError) {
+        throw new Error(initError.message);
+      }
+
+      const { error: presentError } = await presentPaymentSheet();
+
+      if (presentError) {
+        if (presentError.code === 'Canceled') {
+          setIsProcessing(false);
+          return;
+        }
+        throw new Error(presentError.message);
+      }
+
       clearCart();
-      
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
+
       Alert.alert(
-        'Order Placed Successfully!',
-        `Your ${orders.length} order${orders.length > 1 ? 's have' : ' has'} been confirmed. Estimated delivery: ${selectedDelivery?.estimatedTime}`,
+        'Payment submitted',
+        'Your payment is processing. You will receive a confirmation when it completes.',
         [
           {
-            text: 'Continue Shopping',
+            text: 'Continue',
             onPress: () => {
               navigation.navigate('CustomerTabs', { screen: 'Home' });
             },
           },
-        ]
+        ],
       );
     } catch (error) {
-      console.error('Order creation error:', error);
-      Alert.alert('Order Failed', 'There was an error processing your order. Please try again.');
+      console.error('Checkout error:', error);
+      Alert.alert(
+        'Checkout failed',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsProcessing(false);
@@ -159,43 +179,59 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Order Summary</Text>
       <View style={styles.sectionContent}>
-        {shopIds.map(shopId => {
-          const shopItems = cartItemsByShop[shopId];
-          const shopTotal = shopItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-          
-          return (
-            <View key={shopId} style={styles.shopSummary}>
-              <View style={styles.shopHeader}>
-                <Ionicons name="storefront" size={16} color="#4A90E2" />
-                <Text style={styles.shopName}>{shopItems[0]?.shopName || 'Local Shop'}</Text>
-                <Text style={styles.shopTotal}>${shopTotal.toFixed(2)}</Text>
-              </View>
-              {shopItems.map((item, index) => (
-                <View key={`${item.product._id || item.product.id}-${index}`} style={styles.orderItem}>
-                  <Text style={styles.itemName}>{item.product.name}</Text>
-                  <Text style={styles.itemQuantity}>x{item.quantity}</Text>
-                  <Text style={styles.itemPrice}>${(item.product.price * item.quantity).toFixed(2)}</Text>
+        {shopIds.length === 0 ? (
+          <Text style={styles.hintText}>Your cart is empty.</Text>
+        ) : (
+          shopIds.map((shopId) => {
+            const shopItems = cartItemsByShop[shopId];
+            const shopTotal = shopItems.reduce(
+              (sum, item) => sum + item.product.price * item.quantity,
+              0,
+            );
+
+            return (
+              <View key={shopId} style={styles.shopSummary}>
+                <View style={styles.shopHeader}>
+                  <Ionicons name="storefront" size={16} color="#4A90E2" />
+                  <Text style={styles.shopName}>{shopItems[0]?.shopName || 'Local Shop'}</Text>
+                  <Text style={styles.shopTotal}>${shopTotal.toFixed(2)}</Text>
                 </View>
-              ))}
-            </View>
-          );
-        })}
-        
+                {shopItems.map((item, index) => (
+                  <View key={`${item.product._id || item.product.id}-${index}`} style={styles.orderItem}>
+                    <Text style={styles.itemName}>{item.product.name}</Text>
+                    <Text style={styles.itemQuantity}>x{item.quantity}</Text>
+                    <Text style={styles.itemPrice}>
+                      ${(item.product.price * item.quantity).toFixed(2)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            );
+          })
+        )}
+
+        {shopIds.length > 1 ? (
+          <Text style={styles.warningText}>
+            Multiple shops in cart: complete checkout for one shop at a time. Final tax and total
+            are calculated on the server when you pay.
+          </Text>
+        ) : null}
+
         <View style={styles.totalsSection}>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Subtotal:</Text>
+            <Text style={styles.totalLabel}>Subtotal (estimate):</Text>
             <Text style={styles.totalValue}>${totalPrice.toFixed(2)}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Delivery:</Text>
+            <Text style={styles.totalLabel}>Delivery (estimate):</Text>
             <Text style={styles.totalValue}>${deliveryFee.toFixed(2)}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Tax:</Text>
+            <Text style={styles.totalLabel}>Tax (estimate):</Text>
             <Text style={styles.totalValue}>${tax.toFixed(2)}</Text>
           </View>
           <View style={[styles.totalRow, styles.finalTotalRow]}>
-            <Text style={styles.finalTotalLabel}>Total:</Text>
+            <Text style={styles.finalTotalLabel}>Total (estimate):</Text>
             <Text style={styles.finalTotalValue}>${finalTotal.toFixed(2)}</Text>
           </View>
         </View>
@@ -207,7 +243,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Delivery Options</Text>
       <View style={styles.sectionContent}>
-        {deliveryOptions.map(option => (
+        {deliveryOptions.map((option) => (
           <TouchableOpacity
             key={option.id}
             style={[
@@ -215,11 +251,13 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
               selectedDeliveryOption === option.id && styles.selectedOption,
             ]}
             onPress={() => setSelectedDeliveryOption(option.id)}
+            accessibilityRole="button"
+            accessibilityLabel={option.name}
           >
-            <Ionicons 
-              name={option.icon as any} 
-              size={24} 
-              color={selectedDeliveryOption === option.id ? '#4A90E2' : '#CCCCCC'} 
+            <Ionicons
+              name={option.icon as keyof typeof Ionicons.glyphMap}
+              size={24}
+              color={selectedDeliveryOption === option.id ? '#4A90E2' : '#CCCCCC'}
             />
             <View style={styles.optionDetails}>
               <Text style={styles.optionName}>{option.name}</Text>
@@ -239,77 +277,71 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
     </View>
   );
 
-  const renderPaymentMethods = () => (
+  const renderCoupon = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Payment Method</Text>
+      <Text style={styles.sectionTitle}>Promo code (optional)</Text>
       <View style={styles.sectionContent}>
-        {paymentMethods.map(method => (
-          <TouchableOpacity
-            key={method.id}
-            style={[
-              styles.optionItem,
-              selectedPaymentMethod === method.id && styles.selectedOption,
-            ]}
-            onPress={() => setSelectedPaymentMethod(method.id)}
-          >
-            <Ionicons 
-              name={method.icon as any} 
-              size={24} 
-              color={selectedPaymentMethod === method.id ? '#4A90E2' : '#CCCCCC'} 
-            />
-            <View style={styles.optionDetails}>
-              <Text style={styles.optionName}>{method.name}</Text>
-              {method.lastFour && (
-                <Text style={styles.optionDescription}>•••• {method.lastFour}</Text>
-              )}
-            </View>
-            {selectedPaymentMethod === method.id && (
-              <Ionicons name="checkmark-circle" size={20} color="#4A90E2" />
-            )}
-          </TouchableOpacity>
-        ))}
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. WELCOME10"
+          placeholderTextColor="#666666"
+          value={couponCode}
+          onChangeText={setCouponCode}
+          autoCapitalize="characters"
+          accessibilityLabel="Promo code"
+        />
+        <Text style={styles.hintText}>
+          Try WELCOME10 (10% off) or SAVE5 ($5 off). Applied on the server.
+        </Text>
       </View>
     </View>
   );
 
   const renderDeliveryAddress = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Delivery Address</Text>
+      <Text style={styles.sectionTitle}>
+        {selectedDeliveryOption === 'pickup' ? 'Pickup' : 'Delivery address'}
+      </Text>
       <View style={styles.sectionContent}>
-        <TextInput
-          style={styles.input}
-          placeholder="Street Address"
-          placeholderTextColor="#666666"
-          value={deliveryAddress.street}
-          onChangeText={(text) => setDeliveryAddress(prev => ({ ...prev, street: text }))}
-        />
-        <View style={styles.inputRow}>
-          <TextInput
-            style={[styles.input, styles.halfInput]}
-            placeholder="City"
-            placeholderTextColor="#666666"
-            value={deliveryAddress.city}
-            onChangeText={(text) => setDeliveryAddress(prev => ({ ...prev, city: text }))}
-          />
-          <TextInput
-            style={[styles.input, styles.halfInput]}
-            placeholder="Province"
-            placeholderTextColor="#666666"
-            value={deliveryAddress.province}
-            onChangeText={(text) => setDeliveryAddress(prev => ({ ...prev, province: text }))}
-          />
-        </View>
-        <TextInput
-          style={styles.input}
-          placeholder="Postal Code"
-          placeholderTextColor="#666666"
-          value={deliveryAddress.postalCode}
-          onChangeText={(text) => setDeliveryAddress(prev => ({ ...prev, postalCode: text }))}
-          keyboardType="numeric"
-        />
+        {selectedDeliveryOption === 'pickup' ? (
+          <Text style={styles.hintText}>You will pick up at the shop. No address required.</Text>
+        ) : (
+          <>
+            <TextInput
+              style={styles.input}
+              placeholder="Street Address"
+              placeholderTextColor="#666666"
+              value={deliveryAddress.street}
+              onChangeText={(text) => setDeliveryAddress((prev) => ({ ...prev, street: text }))}
+            />
+            <View style={styles.inputRow}>
+              <TextInput
+                style={[styles.input, styles.halfInput]}
+                placeholder="City"
+                placeholderTextColor="#666666"
+                value={deliveryAddress.city}
+                onChangeText={(text) => setDeliveryAddress((prev) => ({ ...prev, city: text }))}
+              />
+              <TextInput
+                style={[styles.input, styles.halfInput]}
+                placeholder="Province"
+                placeholderTextColor="#666666"
+                value={deliveryAddress.province}
+                onChangeText={(text) => setDeliveryAddress((prev) => ({ ...prev, province: text }))}
+              />
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Postal Code"
+              placeholderTextColor="#666666"
+              value={deliveryAddress.postalCode}
+              onChangeText={(text) => setDeliveryAddress((prev) => ({ ...prev, postalCode: text }))}
+            />
+          </>
+        )}
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="Special delivery instructions (optional)"
+          placeholder="Special instructions (optional)"
           placeholderTextColor="#666666"
           value={specialInstructions}
           onChangeText={setSpecialInstructions}
@@ -320,14 +352,27 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
     </View>
   );
 
+  const renderPaymentInfo = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Payment</Text>
+      <View style={styles.sectionContent}>
+        <Text style={styles.hintText}>
+          Pay securely with Stripe (cards, Apple Pay, Google Pay where available). The amount
+          charged is calculated on the server including delivery, tax, and any valid promo code.
+        </Text>
+      </View>
+    </View>
+  );
+
   return (
     <ScreenWrapper>
       <LinearGradient colors={['#1a1a1a', '#000000']} style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
@@ -335,28 +380,30 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
           <View style={styles.headerSpacer} />
         </View>
 
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           style={styles.content}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <ScrollView 
+          <ScrollView
             style={styles.scrollView}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
             {renderOrderSummary()}
             {renderDeliveryOptions()}
+            {renderCoupon()}
             {renderDeliveryAddress()}
-            {renderPaymentMethods()}
+            {renderPaymentInfo()}
           </ScrollView>
 
-          {/* Place Order Button */}
           <View style={styles.checkoutContainer}>
             <TouchableOpacity
               style={[styles.placeOrderButton, isProcessing && styles.placeOrderButtonDisabled]}
               onPress={handlePlaceOrder}
-              disabled={isProcessing}
+              disabled={isProcessing || shopIds.length === 0}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Pay with Stripe"
             >
               <LinearGradient
                 colors={isProcessing ? ['#666666', '#555555'] : ['#4A90E2', '#357ABD']}
@@ -366,10 +413,8 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
                   <Text style={styles.placeOrderText}>Processing...</Text>
                 ) : (
                   <>
-                    <MaterialIcons name="shopping-cart-checkout" size={20} color="#FFFFFF" />
-                    <Text style={styles.placeOrderText}>
-                      Place Order - ${finalTotal.toFixed(2)}
-                    </Text>
+                    <MaterialIcons name="payment" size={20} color="#FFFFFF" />
+                    <Text style={styles.placeOrderText}>Pay with Stripe</Text>
                   </>
                 )}
               </LinearGradient>
@@ -378,6 +423,44 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
         </KeyboardAvoidingView>
       </LinearGradient>
     </ScreenWrapper>
+  );
+};
+
+export const CheckoutScreen: React.FC<CheckoutScreenProps> = (props) => {
+  const publishableKey = getStripePublishableKey();
+  const merchantId = getStripeMerchantId();
+
+  if (!publishableKey) {
+    return (
+      <ScreenWrapper>
+        <LinearGradient colors={['#1a1a1a', '#000000']} style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => props.navigation.goBack()}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Checkout</Text>
+            <View style={styles.headerSpacer} />
+          </View>
+          <View style={{ padding: 24 }}>
+            <Text style={styles.hintText}>
+              Payments are not configured. Set EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY and rebuild the
+              app. The API also needs STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET.
+            </Text>
+          </View>
+        </LinearGradient>
+      </ScreenWrapper>
+    );
+  }
+
+  return (
+    <StripeProvider publishableKey={publishableKey} merchantIdentifier={merchantId}>
+      <CheckoutContent {...props} />
+    </StripeProvider>
   );
 };
 
@@ -431,6 +514,17 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  hintText: {
+    fontSize: 14,
+    color: '#AAAAAA',
+    lineHeight: 20,
+  },
+  warningText: {
+    fontSize: 14,
+    color: '#fbbf24',
+    marginBottom: 12,
+    lineHeight: 20,
   },
   shopSummary: {
     marginBottom: 16,

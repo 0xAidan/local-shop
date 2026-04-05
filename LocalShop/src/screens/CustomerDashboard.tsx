@@ -15,10 +15,93 @@ import { useAuth } from '../context/AuthContext';
 import { Shop, Order } from '../types';
 import { ShopCard } from '../components/ShopCard';
 import { ScreenWrapper } from '../components/ScreenWrapper';
+import { apiService } from '../services/api';
 
 interface CustomerDashboardProps {
   navigation: any;
 }
+
+const getShopId = (shop: Shop): string => {
+  const raw = shop._id ?? shop.id;
+  return raw != null ? String(raw) : '';
+};
+
+const mapApiOrderToOrder = (raw: Record<string, unknown>): Order => {
+  const id = raw._id != null ? String(raw._id) : '';
+  const customer = raw.customer as Record<string, unknown> | undefined;
+  const shop = raw.shop as Record<string, unknown> | undefined;
+  const shopIdRef = shop?.shopId;
+  const shopIdStr =
+    shopIdRef && typeof shopIdRef === 'object' && (shopIdRef as { _id?: unknown })._id != null
+      ? String((shopIdRef as { _id: unknown })._id)
+      : shopIdRef != null
+        ? String(shopIdRef)
+        : '';
+
+  const items = (raw.items as Array<Record<string, unknown>>) || [];
+  const products = items.map((line) => {
+    const prod = line.product;
+    const pid =
+      prod && typeof prod === 'object' && (prod as { _id?: unknown })._id != null
+        ? String((prod as { _id: unknown })._id)
+        : prod != null
+          ? String(prod)
+          : '';
+    return {
+      productId: pid,
+      quantity: Number(line.quantity) || 0,
+      price: Number(line.unitPrice) || 0,
+      productType: line.productType as Order['products'][0]['productType'],
+    };
+  });
+
+  const payment = raw.payment as Record<string, unknown> | undefined;
+  const payStatus = (payment?.status as string) || 'pending';
+  const paymentStatus: Order['paymentStatus'] =
+    payStatus === 'paid' ||
+    payStatus === 'refunded' ||
+    payStatus === 'partially_refunded' ||
+    payStatus === 'pending'
+      ? (payStatus as Order['paymentStatus'])
+      : 'pending';
+
+  const delivery = raw.delivery as Record<string, unknown> | undefined;
+  const addr = delivery?.address as Record<string, string> | undefined;
+  const shopName = (shop?.name as string) || 'Shop';
+  const addrLine = addr
+    ? [addr.street, addr.city, addr.state, addr.zipCode].filter(Boolean).join(', ')
+    : '';
+  const pickupLocation = addrLine ? `${shopName} — ${addrLine}` : shopName;
+
+  const fin = raw.financials as Order['financials'] | undefined;
+
+  return {
+    _id: id,
+    id,
+    userId: customer?.userId != null ? String(customer.userId) : '',
+    shopId: shopIdStr,
+    products,
+    subtotal: Number(raw.subtotal) || 0,
+    tax: Number(raw.tax) || 0,
+    total: Number(raw.total) || 0,
+    status: raw.status as Order['status'],
+    paymentStatus,
+    pickupLocation,
+    pickupTime: (delivery?.estimatedTime as string) || '',
+    deliveryFee: Number(raw.deliveryFee) || 0,
+    financials: fin || {
+      platformFee: 0,
+      netAmount: Number(raw.total) || 0,
+      currency: 'CAD',
+    },
+    returnEligible: Boolean(raw.returnEligible),
+    returnWindow: Number(raw.returnWindow) || 30,
+    createdAt:
+      raw.createdAt != null
+        ? new Date(raw.createdAt as string | number | Date).toISOString()
+        : new Date().toISOString(),
+  };
+};
 
 export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation }) => {
   const { user } = useAuth();
@@ -35,100 +118,22 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
   const loadData = async () => {
     try {
       setIsLoading(true);
-      // TODO: Replace with real API calls when backend is connected
-      // const favoritesResponse = await apiService.getFavorites();
-      // const ordersResponse = await apiService.getOrders();
-      // setFavorites(favoritesResponse.data);
-      // setRecentOrders(ordersResponse.data);
-      
-      // For now, use mock data
-      const mockFavorites: Shop[] = [
-        {
-          id: 1,
-          name: "Joe's Coffee Shop",
-          description: "The best coffee in town",
-          category: "Coffee",
-          location: {
-            address: "123 Main St",
-            coordinates: { latitude: 48.3809, longitude: -89.2477 },
-            city: "Thunder Bay",
-            province: "ON",
-            postalCode: "P7A 1A1"
-          },
-          rating: { average: 4.5, count: 12 },
-          distance: "0.5 km",
-        },
-        {
-          id: 2,
-          name: "Fresh Market Deli",
-          description: "Fresh local produce and deli items",
-          category: "Grocery",
-          location: {
-            address: "456 Park Ave",
-            coordinates: { latitude: 48.3809, longitude: -89.2477 },
-            city: "Thunder Bay",
-            province: "ON",
-            postalCode: "P7A 2B2"
-          },
-          rating: { average: 4.2, count: 8 },
-          distance: "1.2 km",
-        }
-      ];
+      const [favoriteShops, ordersPayload] = await Promise.all([
+        apiService.getFavorites(),
+        apiService.getMyOrders({ limit: 50 }),
+      ]);
 
-      const mockOrders: Order[] = [
-        {
-          id: 1,
-          userId: 'user1',
-          shopId: 'shop1',
-          products: [
-            { productId: 'product1', quantity: 2, price: 15.99 },
-            { productId: 'product2', quantity: 1, price: 8.50 },
-          ],
-          subtotal: 40.48,
-          tax: 3.24,
-          total: 43.72,
-          status: 'completed',
-          paymentStatus: 'paid',
-          pickupLocation: '123 Main St',
-          pickupTime: '2024-01-15T10:00:00Z',
-          financials: {
-            platformFee: 2.00,
-            netAmount: 41.72,
-            currency: 'CAD',
-          },
-          returnEligible: false,
-          returnWindow: 7,
-          createdAt: '2024-01-15T09:00:00Z',
-        },
-        {
-          id: 2,
-          userId: 'user1',
-          shopId: 'shop2',
-          products: [
-            { productId: 'product3', quantity: 1, price: 12.99 },
-          ],
-          subtotal: 12.99,
-          tax: 1.04,
-          total: 14.03,
-          status: 'ready',
-          paymentStatus: 'paid',
-          pickupLocation: '456 Oak Ave',
-          pickupTime: '2024-01-16T14:00:00Z',
-          financials: {
-            platformFee: 1.00,
-            netAmount: 13.03,
-            currency: 'CAD',
-          },
-          returnEligible: true,
-          returnWindow: 7,
-          createdAt: '2024-01-16T12:30:00Z',
-        }
-      ];
+      const normalizedShops: Shop[] = favoriteShops.map((s) => ({
+        ...s,
+        _id: s._id ?? (s.id != null ? String(s.id) : undefined),
+        id: s.id ?? (s._id != null ? String(s._id) : undefined),
+      }));
 
-      setFavorites(mockFavorites);
-      setRecentOrders(mockOrders);
+      setFavorites(normalizedShops);
+      setRecentOrders(ordersPayload.orders.map((o) => mapApiOrderToOrder(o as Record<string, unknown>)));
     } catch (error) {
       console.error('Error loading data:', error);
+      Alert.alert('Error', 'Could not load favorites or orders. Pull to refresh to try again.');
     } finally {
       setIsLoading(false);
     }
@@ -144,9 +149,15 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
     navigation.navigate('ShopDetail', { shop });
   };
 
-  const handleRemoveFavorite = (shopId: string | number) => {
-    // TODO: Implement remove from favorites
-    console.log('Remove from favorites:', shopId);
+  const handleRemoveFavorite = async (shopId: string) => {
+    if (!shopId) return;
+    try {
+      await apiService.removeFromFavorites(shopId);
+      setFavorites((prev) => prev.filter((s) => getShopId(s) !== shopId));
+    } catch (error) {
+      console.error('Remove favorite failed:', error);
+      Alert.alert('Error', 'Could not remove favorite. Please try again.');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -182,7 +193,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
   const OrderCard = ({ order }: { order: Order }) => (
     <View style={styles.orderCard}>
       <View style={styles.orderHeader}>
-        <Text style={styles.orderId}>Order #{order.id}</Text>
+        <Text style={styles.orderId}>Order #{order.id ?? order._id}</Text>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
           <Text style={styles.statusText}>{getStatusText(order.status)}</Text>
         </View>
@@ -195,7 +206,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
       
       <View style={styles.orderItems}>
         {order.products.map((product, index) => (
-          <Text key={`${order.id}-product-${index}`} style={styles.orderItem}>
+          <Text key={`${order.id ?? order._id}-product-${index}`} style={styles.orderItem}>
             {product.quantity}x ${product.price.toFixed(2)}
           </Text>
         ))}
@@ -333,14 +344,14 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
               ) : (
                 <View style={styles.favoritesList}>
                   {favorites.map((shop) => (
-                    <View key={shop.id || shop._id || `favorite-${shop.name}`} style={styles.favoriteItem}>
+                    <View key={getShopId(shop) || `favorite-${shop.name}`} style={styles.favoriteItem}>
                       <ShopCard 
                         shop={shop} 
                         onPress={() => handleShopPress(shop)}
                       />
                       <TouchableOpacity
                         style={styles.removeButton}
-                        onPress={() => handleRemoveFavorite(shop.id!)}
+                        onPress={() => handleRemoveFavorite(getShopId(shop))}
                       >
                         <Text style={styles.removeButtonText}>Remove</Text>
                       </TouchableOpacity>

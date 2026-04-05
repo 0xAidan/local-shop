@@ -8,13 +8,23 @@ import {
   ShopFormData, 
   ProductFormData 
 } from '../types';
+import { getApiBaseUrl, getApiOrigin } from '../config/env';
 
 // Use mock API for testing (set to false to use real backend)
 const USE_MOCK_API = false;
-const API_BASE_URL = 'http://10.0.0.97:3001/api';
 
 // Import mock service
 import { mockApiService } from './mockApi';
+
+const normalizeUser = (raw: User & { _id?: string }): User => {
+  const id = raw.id ?? raw._id;
+  const idStr = id != null ? String(id) : undefined;
+  return {
+    ...raw,
+    id: idStr ?? raw.id,
+    _id: raw._id ?? idStr,
+  };
+};
 
 class ApiService {
   private token: string | null = null;
@@ -22,6 +32,11 @@ class ApiService {
 
   constructor() {
     this.loadToken();
+  }
+
+  /** Await this before relying on token from AsyncStorage (constructor load is async). */
+  async refreshTokenFromStorage(): Promise<void> {
+    await this.loadToken();
   }
 
   // If using mock API, return mockApiService
@@ -93,7 +108,7 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const url = `${getApiBaseUrl()}${endpoint}`;
     const headers = await this.getHeaders();
 
     try {
@@ -154,7 +169,13 @@ class ApiService {
     this.token = response.data.token;
     await AsyncStorage.setItem('localShopToken', this.token);
 
-    return response as AuthResponse;
+    return {
+      ...response,
+      data: {
+        ...response.data,
+        user: normalizeUser(response.data.user as User & { _id?: string }),
+      },
+    } as AuthResponse;
   }
 
   async register(userData: {
@@ -178,7 +199,13 @@ class ApiService {
     this.token = response.data.token;
     await AsyncStorage.setItem('localShopToken', this.token);
 
-    return response as AuthResponse;
+    return {
+      ...response,
+      data: {
+        ...response.data,
+        user: normalizeUser(response.data.user as User & { _id?: string }),
+      },
+    } as AuthResponse;
   }
 
   async logout(): Promise<void> {
@@ -192,7 +219,7 @@ class ApiService {
     }
 
     const response = await this.request<User>('/auth/me');
-    return response.data;
+    return normalizeUser(response.data as User & { _id?: string });
   }
 
   async updateProfile(profileData: Partial<User>): Promise<User> {
@@ -404,13 +431,56 @@ class ApiService {
   }
 
   // Order Management
-  async getShopOrders(shopId: string, options: any = {}): Promise<{ data: { orders: any[]; pagination: { currentPage: number; totalPages: number; totalOrders: number; hasNext: boolean; hasPrev: boolean; }; }; }> {
-    const response = await this.request(`/shops/${shopId}/orders`, {
-      method: 'GET',
-      body: JSON.stringify(options),
-    });
-    
-    // Transform the response to match expected format
+  async getMyOrders(params?: { page?: number; limit?: number }): Promise<{
+    orders: any[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalOrders: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  }> {
+    const query = new URLSearchParams();
+    if (params?.page != null) query.append('page', String(params.page));
+    if (params?.limit != null) query.append('limit', String(params.limit));
+    const qs = query.toString();
+    const response = await this.request<{
+      orders: any[];
+      pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalOrders: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+      };
+    }>(`/orders/my-orders${qs ? `?${qs}` : ''}`);
+    const payload = response.data as any;
+    return {
+      orders: payload.orders || [],
+      pagination: payload.pagination || {
+        currentPage: 1,
+        totalPages: 1,
+        totalOrders: 0,
+        hasNext: false,
+        hasPrev: false,
+      },
+    };
+  }
+
+  async getShopOrders(
+    shopId: string,
+    options: { status?: string; startDate?: string; endDate?: string; page?: number; limit?: number } = {}
+  ): Promise<{ data: { orders: any[]; pagination: { currentPage: number; totalPages: number; totalOrders: number; hasNext: boolean; hasPrev: boolean; }; }; }> {
+    const query = new URLSearchParams();
+    if (options.status) query.append('status', options.status);
+    if (options.startDate) query.append('startDate', options.startDate);
+    if (options.endDate) query.append('endDate', options.endDate);
+    if (options.page != null) query.append('page', String(options.page));
+    if (options.limit != null) query.append('limit', String(options.limit));
+    const qs = query.toString();
+    const response = await this.request(`/orders/shop/${shopId}${qs ? `?${qs}` : ''}`);
+
     const responseData = response.data as any;
     return {
       data: {
@@ -421,8 +491,8 @@ class ApiService {
           totalOrders: 0,
           hasNext: false,
           hasPrev: false,
-        }
-      }
+        },
+      },
     };
   }
 
@@ -500,6 +570,39 @@ class ApiService {
     return response;
   }
 
+  async createCheckoutPaymentIntent(payload: {
+    shopId: string;
+    items: Array<{ productId: string; quantity: number }>;
+    delivery: {
+      method: string;
+      address?: Record<string, string>;
+      instructions?: string;
+    };
+    payment: { method: string };
+    couponCode?: string;
+  }): Promise<{
+    clientSecret: string;
+    orderId: string;
+    amount: number;
+    currency: string;
+    publishableKey: string;
+  }> {
+    if (USE_MOCK_API) {
+      throw new Error('Stripe checkout is not available in mock API mode');
+    }
+    const response = await this.request<{
+      clientSecret: string;
+      orderId: string;
+      amount: number;
+      currency: string;
+      publishableKey: string;
+    }>('/checkout/create-payment-intent', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return response.data;
+  }
+
   // Image Upload
   async uploadImage(imageUri: string, type: 'image' | 'images' | 'avatar' | 'shop-logos' | 'shop-images' = 'image'): Promise<{
     url: string;
@@ -519,7 +622,7 @@ class ApiService {
     const headers = await this.getHeaders();
     delete (headers as any)['Content-Type']; // Let the browser set the content type for FormData
 
-    const response = await fetch(`${API_BASE_URL}/upload/${type}`, {
+    const response = await fetch(`${getApiBaseUrl()}/upload/${type}`, {
       method: 'POST',
       headers,
       body: formData,
@@ -554,7 +657,7 @@ class ApiService {
     const headers = await this.getHeaders();
     delete (headers as any)['Content-Type'];
 
-    const response = await fetch(`${API_BASE_URL}/upload/images`, {
+    const response = await fetch(`${getApiBaseUrl()}/upload/images`, {
       method: 'POST',
       headers,
       body: formData,
@@ -579,7 +682,7 @@ class ApiService {
   async healthCheck(): Promise<{ status: string; message: string }> {
     try {
       console.log('🏥 Checking API health...');
-      const response = await fetch(`${API_BASE_URL.replace('/api', '')}/health`);
+      const response = await fetch(`${getApiOrigin()}/health`);
       const data = await response.json();
       console.log('✅ API health check successful:', data);
       return data;
@@ -641,6 +744,66 @@ class ApiService {
         return null;
       }
     }
+  }
+
+  async reviewsCreate(body: Record<string, unknown>) {
+    return this.request('/reviews', { method: 'POST', body: JSON.stringify(body) });
+  }
+
+  async reviewsShopList(shopId: string, query: Record<string, string | number | undefined>) {
+    const q = new URLSearchParams();
+    Object.entries(query).forEach(([k, v]) => {
+      if (v !== undefined && v !== '') q.append(k, String(v));
+    });
+    const qs = q.toString();
+    return this.request(`/reviews/shop/${shopId}${qs ? `?${qs}` : ''}`);
+  }
+
+  async reviewsProductList(productId: string, query: Record<string, string | number | undefined>) {
+    const q = new URLSearchParams();
+    Object.entries(query).forEach(([k, v]) => {
+      if (v !== undefined && v !== '') q.append(k, String(v));
+    });
+    const qs = q.toString();
+    return this.request(`/reviews/product/${productId}${qs ? `?${qs}` : ''}`);
+  }
+
+  async reviewsMyList(query: { page?: number; limit?: number } = {}) {
+    const q = new URLSearchParams();
+    if (query.page != null) q.append('page', String(query.page));
+    if (query.limit != null) q.append('limit', String(query.limit));
+    const qs = q.toString();
+    return this.request(`/reviews/my-reviews${qs ? `?${qs}` : ''}`);
+  }
+
+  async reviewsUpdate(reviewId: string, body: Record<string, unknown>) {
+    return this.request(`/reviews/${reviewId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async reviewsDelete(reviewId: string) {
+    return this.request(`/reviews/${reviewId}`, { method: 'DELETE' });
+  }
+
+  async reviewsToggleVisibility(reviewId: string) {
+    return this.request(`/reviews/${reviewId}/toggle-visibility`, { method: 'PATCH' });
+  }
+
+  async reviewsDispute(reviewId: string, body: { reason: string; description: string }) {
+    return this.request(`/reviews/${reviewId}/dispute`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async reviewsMarkHelpful(reviewId: string) {
+    return this.request(`/reviews/${reviewId}/helpful`, { method: 'POST' });
+  }
+
+  async reviewsShopStats(shopId: string) {
+    return this.request(`/reviews/shop/${shopId}/stats`);
   }
 }
 

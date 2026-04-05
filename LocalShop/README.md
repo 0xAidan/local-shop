@@ -78,9 +78,27 @@ npm run dev
 ```bash
 cd LocalShop
 npm install
-# Update API_BASE_URL in src/services/api.ts if needed
+```
+
+The API base URL comes from **`app.config.js`** → `extra.apiBaseUrl`. Override with environment variables:
+
+```bash
+# Same machine / iOS simulator (backend on host)
+export EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:3001/api
+
+# Physical device on LAN (use your computer's LAN IP)
+export EXPO_PUBLIC_API_BASE_URL=http://192.168.1.10:3001/api
+
+# Stripe (use EAS secrets for production builds)
+export EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+export EXPO_PUBLIC_STRIPE_MERCHANT_ID=merchant.com.yourapp   # iOS Apple Pay
+
 npm start
 ```
+
+**Stripe checkout** needs a [development build](https://docs.expo.dev/develop/development-builds/introduction/) (`expo-dev-client`), not Expo Go alone. Run `eas build --profile development` after configuring `eas.json`.
+
+**Store submission:** Set `IOS_BUNDLE_ID` / `ANDROID_PACKAGE` env vars when building if you change identifiers from the defaults in `app.config.js`. Host **Privacy Policy** and **Terms** URLs in App Store Connect / Play Console (add in-app links in Profile or Settings as needed).
 
 ### 3. Environment Variables
 Create a `.env` file in the backend directory:
