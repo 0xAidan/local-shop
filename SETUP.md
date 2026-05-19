@@ -162,9 +162,16 @@ Production URLs are already set in [`LocalShop/eas.json`](LocalShop/eas.json) `b
 Build and install:
 
 ```bash
+# Simulator-only build:
 eas build --platform ios --profile development
-# Install on device via QR link from Expo dashboard
+
+# Physical iPhone (internal distribution):
+eas build --platform ios --profile preview
 ```
+
+Install via the QR link on the [Expo builds page](https://expo.dev/accounts/aidannuge/projects/localshop/builds).
+
+**Plain-language checklist:** [`docs/APP_STORE_NEXT_STEPS.md`](docs/APP_STORE_NEXT_STEPS.md)
 
 ### 4. Test card checkout
 

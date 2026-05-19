@@ -7,7 +7,9 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "dev:simple": "nodemon src/index-simple.js",
-    "test": "NODE_ENV=test jest"
+    "test": "NODE_ENV=test jest",
+    "seed:catalog": "node scripts/seed-catalog.js",
+    "seed:catalog:live": "node scripts/seed-catalog-via-api.js"
   },
   "dependencies": {
     "axios": "^1.6.0",
