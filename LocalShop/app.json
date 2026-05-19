@@ -52,7 +52,13 @@
           "cameraPermission": "LocalShop uses your camera to photograph products."
         }
       ],
-      "@stripe/stripe-react-native"
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.localshop.app",
+          "enableGooglePay": false
+        }
+      ]
     ],
     "extra": {
       "eas": {
