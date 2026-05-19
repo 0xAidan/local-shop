@@ -12,6 +12,12 @@
 
 ---
 
+## Finish end-to-end (no Apple account yet)
+
+See **[docs/FINISH_E2E.md](docs/FINISH_E2E.md)** — browse, checkout, and shop-owner flows on the simulator with a development build.
+
+---
+
 ## Local dev (three terminals)
 
 ```bash
