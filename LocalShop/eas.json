@@ -11,7 +11,9 @@
         "simulator": true
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://YOUR-STAGING-API.example.com/api"
+        "EXPO_PUBLIC_API_URL": "https://local-shop-v93b.onrender.com/api",
+        "EXPO_PUBLIC_PRIVACY_URL": "https://local-shop-sigma.vercel.app/privacy",
+        "EXPO_PUBLIC_TERMS_URL": "https://local-shop-sigma.vercel.app/terms"
       }
     },
     "preview": {
@@ -20,13 +22,17 @@
         "simulator": false
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://YOUR-STAGING-API.example.com/api"
+        "EXPO_PUBLIC_API_URL": "https://local-shop-v93b.onrender.com/api",
+        "EXPO_PUBLIC_PRIVACY_URL": "https://local-shop-sigma.vercel.app/privacy",
+        "EXPO_PUBLIC_TERMS_URL": "https://local-shop-sigma.vercel.app/terms"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://YOUR-API.example.com/api"
+        "EXPO_PUBLIC_API_URL": "https://local-shop-v93b.onrender.com/api",
+        "EXPO_PUBLIC_PRIVACY_URL": "https://local-shop-sigma.vercel.app/privacy",
+        "EXPO_PUBLIC_TERMS_URL": "https://local-shop-sigma.vercel.app/terms"
       }
     }
   },

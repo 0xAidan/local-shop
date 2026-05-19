@@ -7,6 +7,11 @@ const Notification = require('../models/Notification');
 const { userOwnsShop, toObjectId } = require('../utils/shopAccess');
 const { getPlatformFeeDollars, refundPaymentIntent, allowDevPaymentBypass } = require('../services/stripe');
 const { reserveInventoryForOrder, restoreInventoryForOrder } = require('../utils/orderInventory');
+const {
+  getDeliveryFee,
+  getDeliveryEstimatedTime,
+  normalizeDeliveryMethod,
+} = require('../utils/deliveryFees');
 
 // Create a new order
 router.post('/', authenticateToken, async (req, res) => {
@@ -70,7 +75,8 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 
     const tax = subtotal * 0.08; // 8% tax
-    const deliveryFee = delivery.method === 'pickup' ? 0 : 2.99;
+    const deliveryMethod = normalizeDeliveryMethod(delivery.method);
+    const deliveryFee = getDeliveryFee(deliveryMethod);
     const total = subtotal + tax + deliveryFee;
     const platformFee = getPlatformFeeDollars(total);
     const netAmount = total - platformFee;
@@ -95,10 +101,10 @@ router.post('/', authenticateToken, async (req, res) => {
       deliveryFee,
       total,
       delivery: {
-        method: delivery.method,
+        method: deliveryMethod,
         address: delivery.address,
         instructions: delivery.instructions,
-        estimatedTime: delivery.method === 'pickup' ? '15-30 mins' : '2-4 hours'
+        estimatedTime: getDeliveryEstimatedTime(deliveryMethod),
       },
       payment: {
         method: payment.method || 'card',

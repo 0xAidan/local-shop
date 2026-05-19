@@ -116,7 +116,10 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
             productType: item.product.productType || 'stock',
           })),
           delivery: {
-            method: selectedDeliveryOption,
+            method:
+              selectedDeliveryOption === 'standard'
+                ? 'delivery'
+                : selectedDeliveryOption,
             address: deliveryAddress,
             instructions: specialInstructions,
           },
