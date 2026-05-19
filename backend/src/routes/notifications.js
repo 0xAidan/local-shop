@@ -9,7 +9,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const userId = req.user._id;
     const { page = 1, limit = 20, type } = req.query;
 
-    const query = { user: userId };
+    const query = { recipient: userId };
     if (type) {
       query.type = type;
     }
@@ -45,7 +45,7 @@ router.get('/unread-count', authenticateToken, async (req, res) => {
   try {
     const userId = req.user._id;
     const count = await Notification.countDocuments({
-      user: userId,
+      recipient: userId,
       isRead: false
     });
 
@@ -69,7 +69,7 @@ router.patch('/:notificationId/read', authenticateToken, async (req, res) => {
     const userId = req.user._id;
 
     const notification = await Notification.findOneAndUpdate(
-      { _id: notificationId, user: userId },
+      { _id: notificationId, recipient: userId },
       { isRead: true },
       { new: true }
     );
@@ -100,7 +100,7 @@ router.patch('/mark-all-read', authenticateToken, async (req, res) => {
     const userId = req.user._id;
 
     await Notification.updateMany(
-      { user: userId, isRead: false },
+      { recipient: userId, isRead: false },
       { isRead: true }
     );
 
@@ -125,7 +125,7 @@ router.delete('/:notificationId', authenticateToken, async (req, res) => {
 
     const notification = await Notification.findOneAndDelete({
       _id: notificationId,
-      user: userId
+      recipient: userId
     });
 
     if (!notification) {

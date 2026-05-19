@@ -12,6 +12,10 @@ import { useAuth } from '../context/AuthContext';
 // TODO: Remove this component when authentication is re-enabled
 
 export const RoleSwitcher: React.FC = () => {
+  if (!__DEV__) {
+    return null;
+  }
+
   const { currentViewMode, switchViewMode } = useAuth();
 
   const handleSwitchRole = () => {

@@ -37,46 +37,8 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
   const loadShops = async () => {
     try {
       setIsLoading(true);
-      // TODO: Replace with real API call when backend is connected
-      // const response = await apiService.getMyShops();
-      // setShops(response.data);
-      
-      // For now, use mock data
-      const mockShops: Shop[] = [
-        {
-          id: 1,
-          name: "Joe's Coffee Shop",
-          description: "The best coffee in town",
-          category: "Coffee",
-          location: {
-            address: "123 Main St",
-            coordinates: { latitude: 48.3809, longitude: -89.2477 },
-            city: "Thunder Bay",
-            province: "ON",
-            postalCode: "P7A 1A1"
-          },
-          rating: { average: 4.5, count: 12 },
-          isActive: true,
-          isVerified: true,
-        },
-        {
-          id: 2,
-          name: "Fresh Market Deli",
-          description: "Fresh local produce and deli items",
-          category: "Grocery",
-          location: {
-            address: "456 Park Ave",
-            coordinates: { latitude: 48.3809, longitude: -89.2477 },
-            city: "Thunder Bay",
-            province: "ON",
-            postalCode: "P7A 2B2"
-          },
-          rating: { average: 4.2, count: 8 },
-          isActive: true,
-          isVerified: false,
-        }
-      ];
-      setShops(mockShops);
+      const userShops = await apiService.getUserShops();
+      setShops(userShops);
     } catch (error) {
       console.error('Error loading shops:', error);
       Alert.alert('Error', 'Failed to load shops. Please try again.');

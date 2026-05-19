@@ -4,6 +4,7 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const { authenticateToken } = require('../middleware/auth');
 const Notification = require('../models/Notification');
+const { userOwnsShop, toObjectId } = require('../utils/shopAccess');
 
 // Create a new order
 router.post('/', authenticateToken, async (req, res) => {
@@ -55,14 +56,15 @@ router.post('/', authenticateToken, async (req, res) => {
         await product.save();
       }
 
-      const itemTotal = item.price * item.quantity;
+      const unitPrice = product.price;
+      const itemTotal = unitPrice * item.quantity;
       subtotal += itemTotal;
 
       orderItems.push({
         product: item.productId,
         name: product.name,
         quantity: item.quantity,
-        unitPrice: item.price,
+        unitPrice,
         totalPrice: itemTotal,
         productType: product.productType || 'stock'
       });
@@ -100,10 +102,8 @@ router.post('/', authenticateToken, async (req, res) => {
         estimatedTime: delivery.method === 'pickup' ? '15-30 mins' : '2-4 hours'
       },
       payment: {
-        method: payment.method,
-        status: 'paid',
-        transactionId: `txn_${Date.now()}`,
-        paidAt: new Date()
+        method: payment.method || 'card',
+        status: 'pending',
       },
       financials: {
         platformFee,
@@ -139,7 +139,37 @@ router.post('/', authenticateToken, async (req, res) => {
     });
   }
 });
-const mongoose = require('mongoose');
+// Customer order history
+router.get('/my', authenticateToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const orders = await Order.find({ 'customer.userId': req.user._id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    const totalOrders = await Order.countDocuments({ 'customer.userId': req.user._id });
+
+    res.json({
+      success: true,
+      data: {
+        orders,
+        pagination: {
+          currentPage: Number(page),
+          totalPages: Math.ceil(totalOrders / Number(limit)),
+          totalOrders,
+          hasNext: Number(page) * Number(limit) < totalOrders,
+          hasPrev: Number(page) > 1,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching customer orders:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch orders' });
+  }
+});
 
 // Get all orders for a shop (shop owner only)
 router.get('/shop/:shopId', authenticateToken, async (req, res) => {
@@ -151,7 +181,7 @@ router.get('/shop/:shopId', authenticateToken, async (req, res) => {
     const user = req.user;
     const userShops = user.shops || [];
     
-    if (!userShops.includes(shopId)) {
+    if (!userOwnsShop(user, shopId)) {
       return res.status(403).json({ 
         success: false, 
         message: 'Access denied. You can only view orders for your own shops.' 
@@ -221,7 +251,7 @@ router.get('/:orderId', authenticateToken, async (req, res) => {
     // Verify access - either customer or shop owner
     const user = req.user;
     const isCustomer = order.customer.userId.toString() === user._id.toString();
-    const isShopOwner = user.shops && user.shops.includes(order.shop.shopId.toString());
+    const isShopOwner = userOwnsShop(user, order.shop.shopId);
 
     if (!isCustomer && !isShopOwner) {
       return res.status(403).json({ 
@@ -259,7 +289,7 @@ router.patch('/:orderId/status', authenticateToken, async (req, res) => {
     }
 
     // Verify the user owns this shop
-    if (!user.shops || !user.shops.includes(order.shop.shopId.toString())) {
+    if (!userOwnsShop(user, order.shop.shopId)) {
       return res.status(403).json({ 
         success: false, 
         message: 'Access denied. You can only update orders for your own shops.' 
@@ -337,7 +367,7 @@ router.post('/:orderId/refund', authenticateToken, async (req, res) => {
     }
 
     // Verify the user owns this shop
-    if (!user.shops || !user.shops.includes(order.shop.shopId.toString())) {
+    if (!userOwnsShop(user, order.shop.shopId)) {
       return res.status(403).json({ 
         success: false, 
         message: 'Access denied. You can only refund orders for your own shops.' 
@@ -412,7 +442,7 @@ router.get('/shop/:shopId/stats', authenticateToken, async (req, res) => {
     
     // Verify the user owns this shop
     const user = req.user;
-    if (!user.shops || !user.shops.includes(shopId)) {
+    if (!userOwnsShop(user, shopId)) {
       return res.status(403).json({ 
         success: false, 
         message: 'Access denied' 
@@ -441,7 +471,7 @@ router.get('/shop/:shopId/stats', authenticateToken, async (req, res) => {
     const stats = await Order.aggregate([
       {
         $match: {
-          'shop.shopId': mongoose.Types.ObjectId(shopId),
+          'shop.shopId': toObjectId(shopId),
           createdAt: { $gte: startDate }
         }
       },
@@ -458,7 +488,7 @@ router.get('/shop/:shopId/stats', authenticateToken, async (req, res) => {
     const totalStats = await Order.aggregate([
       {
         $match: {
-          'shop.shopId': mongoose.Types.ObjectId(shopId),
+          'shop.shopId': toObjectId(shopId),
           createdAt: { $gte: startDate }
         }
       },

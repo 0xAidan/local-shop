@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { Shop, Order } from '../types';
 import { ShopCard } from '../components/ShopCard';
 import { ScreenWrapper } from '../components/ScreenWrapper';
+import { apiService } from '../services/api';
 
 interface CustomerDashboardProps {
   navigation: any;
@@ -35,98 +36,13 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
   const loadData = async () => {
     try {
       setIsLoading(true);
-      // TODO: Replace with real API calls when backend is connected
-      // const favoritesResponse = await apiService.getFavorites();
-      // const ordersResponse = await apiService.getOrders();
-      // setFavorites(favoritesResponse.data);
-      // setRecentOrders(ordersResponse.data);
-      
-      // For now, use mock data
-      const mockFavorites: Shop[] = [
-        {
-          id: 1,
-          name: "Joe's Coffee Shop",
-          description: "The best coffee in town",
-          category: "Coffee",
-          location: {
-            address: "123 Main St",
-            coordinates: { latitude: 48.3809, longitude: -89.2477 },
-            city: "Thunder Bay",
-            province: "ON",
-            postalCode: "P7A 1A1"
-          },
-          rating: { average: 4.5, count: 12 },
-          distance: "0.5 km",
-        },
-        {
-          id: 2,
-          name: "Fresh Market Deli",
-          description: "Fresh local produce and deli items",
-          category: "Grocery",
-          location: {
-            address: "456 Park Ave",
-            coordinates: { latitude: 48.3809, longitude: -89.2477 },
-            city: "Thunder Bay",
-            province: "ON",
-            postalCode: "P7A 2B2"
-          },
-          rating: { average: 4.2, count: 8 },
-          distance: "1.2 km",
-        }
-      ];
+      const [favoritesData, ordersResponse] = await Promise.all([
+        apiService.getFavorites(),
+        apiService.getMyOrders(),
+      ]);
 
-      const mockOrders: Order[] = [
-        {
-          id: 1,
-          userId: 'user1',
-          shopId: 'shop1',
-          products: [
-            { productId: 'product1', quantity: 2, price: 15.99 },
-            { productId: 'product2', quantity: 1, price: 8.50 },
-          ],
-          subtotal: 40.48,
-          tax: 3.24,
-          total: 43.72,
-          status: 'completed',
-          paymentStatus: 'paid',
-          pickupLocation: '123 Main St',
-          pickupTime: '2024-01-15T10:00:00Z',
-          financials: {
-            platformFee: 2.00,
-            netAmount: 41.72,
-            currency: 'CAD',
-          },
-          returnEligible: false,
-          returnWindow: 7,
-          createdAt: '2024-01-15T09:00:00Z',
-        },
-        {
-          id: 2,
-          userId: 'user1',
-          shopId: 'shop2',
-          products: [
-            { productId: 'product3', quantity: 1, price: 12.99 },
-          ],
-          subtotal: 12.99,
-          tax: 1.04,
-          total: 14.03,
-          status: 'ready',
-          paymentStatus: 'paid',
-          pickupLocation: '456 Oak Ave',
-          pickupTime: '2024-01-16T14:00:00Z',
-          financials: {
-            platformFee: 1.00,
-            netAmount: 13.03,
-            currency: 'CAD',
-          },
-          returnEligible: true,
-          returnWindow: 7,
-          createdAt: '2024-01-16T12:30:00Z',
-        }
-      ];
-
-      setFavorites(mockFavorites);
-      setRecentOrders(mockOrders);
+      setFavorites(favoritesData);
+      setRecentOrders(ordersResponse.data.orders || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {

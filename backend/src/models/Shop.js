@@ -129,6 +129,23 @@ const shopSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+
+  stripeConnectAccountId: {
+    type: String,
+    trim: true,
+  },
+  stripeConnectChargesEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  stripeConnectPayoutsEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  stripeConnectDetailsSubmitted: {
+    type: Boolean,
+    default: false,
+  },
   
   // Rating is now calculated from the Review model
   // This field is maintained for backward compatibility and performance

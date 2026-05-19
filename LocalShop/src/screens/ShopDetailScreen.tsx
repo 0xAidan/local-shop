@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -18,6 +18,8 @@ import { QuickAddModal } from '../components/QuickAddModal';
 import { MapPreview } from '../components/MapPreview';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import { useCart } from '../context/CartContext';
+import { apiService } from '../services/api';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
 interface ShopDetailScreenProps {
   route: {
@@ -35,55 +37,28 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productDetailVisible, setProductDetailVisible] = useState(false);
   const [quickAddVisible, setQuickAddVisible] = useState(false);
+  const [shopProducts, setShopProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
 
-  // Mock products for this shop
-  const shopProducts: Product[] = [
-    {
-      id: 1,
-      name: 'Fresh Organic Tomatoes',
-      price: 3.99,
-      description: 'Locally grown organic tomatoes',
-      category: 'Vegetables',
-      shop: shop.id?.toString() || '1',
-      inventory: {
-        quantity: 50,
-        unit: 'pieces',
-        lowStockThreshold: 10,
-        isUnlimited: false
-      },
-      isAvailable: true,
-    },
-    {
-      id: 2,
-      name: 'Mixed Greens',
-      price: 2.99,
-      description: 'Fresh mixed salad greens',
-      category: 'Vegetables',
-      shop: shop.id?.toString() || '1',
-      inventory: {
-        quantity: 30,
-        unit: 'bags',
-        lowStockThreshold: 8,
-        isUnlimited: false
-      },
-      isAvailable: true,
-    },
-    {
-      id: 3,
-      name: 'Carrots',
-      price: 1.99,
-      description: 'Sweet organic carrots',
-      category: 'Vegetables',
-      shop: shop.id?.toString() || '1',
-      inventory: {
-        quantity: 40,
-        unit: 'pieces',
-        lowStockThreshold: 12,
-        isUnlimited: false
-      },
-      isAvailable: true,
-    },
-  ];
+  const shopId = String(shop._id || shop.id);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setProductsLoading(true);
+        const { products } = await apiService.getShopProducts(shopId);
+        setShopProducts(products);
+      } catch (error) {
+        console.error('Failed to load shop products:', error);
+        Alert.alert('Error', 'Could not load products for this shop.');
+        setShopProducts([]);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, [shopId]);
 
   const handleAddToCart = (product: Product, quantity: number) => {
     addToCart(product, quantity);
@@ -186,9 +161,15 @@ export const ShopDetailScreen: React.FC<ShopDetailScreenProps> = ({ route, navig
           {/* Products Section */}
           <View style={styles.productsSection}>
             <Text style={styles.sectionTitle}>Products</Text>
-            {shopProducts.map((product) => (
-              <ProductCard key={product.id || product._id || `product-${product.name}`} product={product} />
-            ))}
+            {productsLoading ? (
+              <LoadingSpinner />
+            ) : shopProducts.length === 0 ? (
+              <Text style={styles.emptyProductsText}>No products listed yet.</Text>
+            ) : (
+              shopProducts.map((product) => (
+                <ProductCard key={product.id || product._id || `product-${product.name}`} product={product} />
+              ))
+            )}
           </View>
 
           {/* Shop Owner Info */}
@@ -309,6 +290,11 @@ const styles = StyleSheet.create({
 
   productsSection: {
     marginBottom: 30,
+  },
+  emptyProductsText: {
+    color: '#666',
+    fontSize: 14,
+    paddingVertical: 12,
   },
   sectionTitle: {
     fontSize: 20,

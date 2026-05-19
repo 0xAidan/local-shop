@@ -191,8 +191,8 @@ const orderSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-orderSchema.index({ shop: 1, status: 1, createdAt: -1 });
-orderSchema.index({ customer: 1, createdAt: -1 });
+orderSchema.index({ 'shop.shopId': 1, status: 1, createdAt: -1 });
+orderSchema.index({ 'customer.userId': 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 
 // Pre-save middleware to calculate return deadline

@@ -11,7 +11,8 @@ import {
 
 // Use mock API for testing (set to false to use real backend)
 const USE_MOCK_API = false;
-const API_BASE_URL = 'http://10.0.0.97:3001/api';
+const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 // Import mock service
 import { mockApiService } from './mockApi';
@@ -404,10 +405,15 @@ class ApiService {
   }
 
   // Order Management
+  async getMyOrders(): Promise<{ data: { orders: any[]; pagination: any } }> {
+    const response = await this.request('/orders/my');
+    return response as { data: { orders: any[]; pagination: any } };
+  }
+
   async getShopOrders(shopId: string, options: any = {}): Promise<{ data: { orders: any[]; pagination: { currentPage: number; totalPages: number; totalOrders: number; hasNext: boolean; hasPrev: boolean; }; }; }> {
-    const response = await this.request(`/shops/${shopId}/orders`, {
+    const query = new URLSearchParams(options).toString();
+    const response = await this.request(`/orders/shop/${shopId}${query ? `?${query}` : ''}`, {
       method: 'GET',
-      body: JSON.stringify(options),
     });
     
     // Transform the response to match expected format
@@ -470,6 +476,34 @@ class ApiService {
 
     const response = await this.request(`/orders/shop/${shopId}/stats?period=${period}`);
     return response;
+  }
+
+  async createPaymentIntent(orderId: string): Promise<{
+    data: {
+      clientSecret?: string;
+      paymentIntentId?: string;
+      devBypass?: boolean;
+      order?: any;
+    };
+  }> {
+    const response = await this.request(`/payments/orders/${orderId}/intent`, {
+      method: 'POST',
+    });
+    return response;
+  }
+
+  async getPaymentConfig(): Promise<{
+    data: { stripeEnabled: boolean; publishableKey: string | null };
+  }> {
+    return this.request('/payments/config');
+  }
+
+  async deleteAccount(password: string): Promise<void> {
+    await this.request('/users/account', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    });
+    await this.logout();
   }
 
   async createOrder(orderData: {
