@@ -25,26 +25,28 @@ export const OrderManagementScreen: React.FC = () => {
   const [userShops, setUserShops] = useState<Shop[]>([]);
 
   useEffect(() => {
-    loadUserShops();
-    loadOrders();
+    loadData();
   }, []);
 
-  const loadUserShops = async () => {
+  const loadData = async () => {
     try {
+      setLoading(true);
       const shops = await apiService.getUserShops();
       setUserShops(shops);
+      await loadOrders(shops);
     } catch (error) {
-      console.error('Error loading user shops:', error);
+      console.error('Error loading shop data:', error);
+      Alert.alert('Error', 'Failed to load orders');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const loadOrders = async () => {
+  const loadOrders = async (shops: Shop[]) => {
     try {
-      setLoading(true);
       const allOrders: OrderWithShop[] = [];
 
-      // Load orders for each shop
-      for (const shop of userShops) {
+      for (const shop of shops) {
         try {
           const response = await apiService.getShopOrders(shop._id!);
           const shopOrders = response.data.orders.map((order: any) => ({
@@ -63,16 +65,22 @@ export const OrderManagementScreen: React.FC = () => {
       setOrders(allOrders);
     } catch (error) {
       console.error('Error loading orders:', error);
-      Alert.alert('Error', 'Failed to load orders');
-    } finally {
-      setLoading(false);
+      throw error;
+    }
+  };
+
+  const handleUpdateStatus = async (orderId: string, status: string) => {
+    try {
+      await apiService.updateOrderStatus(orderId, status);
+      await loadData();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update order status');
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadUserShops();
-    await loadOrders();
+    await loadData();
     setRefreshing(false);
   };
 
@@ -167,7 +175,7 @@ export const OrderManagementScreen: React.FC = () => {
             color="#666" 
           />
           <Text style={styles.deliveryText}>
-            {item.pickupLocation.includes('delivery') ? 'Delivery' : 'Pickup'}
+            {(item as any).delivery?.method === 'pickup' ? 'Pickup' : 'Delivery'}
           </Text>
         </View>
 
@@ -175,14 +183,14 @@ export const OrderManagementScreen: React.FC = () => {
       </View>
 
       <View style={styles.itemsContainer}>
-        {item.products?.slice(0, 2).map((product, index) => (
+        {(item as any).items?.slice(0, 2).map((orderItem: any, index: number) => (
           <Text key={index} style={styles.itemText}>
-            {product.quantity}x {product.productId} - {formatCurrency(product.price)}
+            {orderItem.quantity}x {orderItem.name} - {formatCurrency(orderItem.totalPrice)}
           </Text>
         ))}
-        {item.products && item.products.length > 2 && (
+        {(item as any).items && (item as any).items.length > 2 && (
           <Text style={styles.moreItemsText}>
-            +{item.products.length - 2} more items
+            +{(item as any).items.length - 2} more items
           </Text>
         )}
       </View>
@@ -197,6 +205,39 @@ export const OrderManagementScreen: React.FC = () => {
           </View>
         )}
       </View>
+
+      {item.status === 'pending' && (
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => handleUpdateStatus(String(item._id), 'confirmed')}
+        >
+          <Text style={styles.actionButtonText}>Confirm order</Text>
+        </TouchableOpacity>
+      )}
+      {item.status === 'confirmed' && (
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => handleUpdateStatus(String(item._id), 'preparing')}
+        >
+          <Text style={styles.actionButtonText}>Start preparing</Text>
+        </TouchableOpacity>
+      )}
+      {item.status === 'preparing' && (
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => handleUpdateStatus(String(item._id), 'ready')}
+        >
+          <Text style={styles.actionButtonText}>Mark ready</Text>
+        </TouchableOpacity>
+      )}
+      {item.status === 'ready' && (
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => handleUpdateStatus(String(item._id), 'completed')}
+        >
+          <Text style={styles.actionButtonText}>Complete order</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -403,5 +444,17 @@ const styles = StyleSheet.create({
     color: '#E0E0E0',
     textAlign: 'center',
     paddingHorizontal: 40,
+  },
+  actionButton: {
+    marginTop: 12,
+    backgroundColor: '#4A90E2',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
   },
 }); 

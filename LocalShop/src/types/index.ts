@@ -369,6 +369,7 @@ export interface ShopFormData {
   }>;
   tags?: string[];
   features?: string[];
+  isActive?: boolean;
 }
 
 export interface ProductFormData {

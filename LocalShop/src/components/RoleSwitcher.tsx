@@ -1,61 +1,72 @@
 import React from 'react';
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
-
-// 🚨 DEVELOPMENT MODE: Role switcher for testing
-// TODO: Remove this component when authentication is re-enabled
+import { colors, layout } from '../theme/colors';
 
 export const RoleSwitcher: React.FC = () => {
   const { currentViewMode, switchViewMode } = useAuth();
 
-  const handleSwitchRole = () => {
-    const newMode = currentViewMode === 'customer' ? 'shop_owner' : 'customer';
-    switchViewMode(newMode);
-  };
+  if (!__DEV__) {
+    return null;
+  }
+
+  const nextMode = currentViewMode === 'customer' ? 'shop_owner' : 'customer';
 
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={handleSwitchRole}
-      activeOpacity={0.8}
-    >
-      <View style={styles.content}>
-        <Ionicons 
-          name={currentViewMode === 'customer' ? 'person' : 'business'} 
-          size={16} 
-          color="#FFFFFF" 
+    <View style={styles.wrap}>
+      <Text style={styles.label}>Developer</Text>
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => switchViewMode(nextMode)}
+        activeOpacity={0.8}
+      >
+        <Ionicons
+          name={currentViewMode === 'customer' ? 'person-outline' : 'business-outline'}
+          size={18}
+          color={colors.textSecondary}
         />
-        <Text style={styles.text}>
-          {currentViewMode === 'customer' ? 'Customer' : 'Shop Owner'}
+        <Text style={styles.value}>
+          Viewing as {currentViewMode === 'customer' ? 'customer' : 'shop owner'}
         </Text>
-        <Ionicons name="swap-horizontal" size={16} color="#FFFFFF" />
-      </View>
-    </TouchableOpacity>
+        <Text style={styles.switch}>Switch</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginLeft: 12,
+  wrap: {
+    marginTop: 8,
+    marginBottom: layout.sectionGap,
+    paddingHorizontal: layout.screenPadding,
   },
-  content: {
+  label: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 10,
+    padding: 14,
+    backgroundColor: colors.surface,
+    borderRadius: layout.cardRadius,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  text: {
-    color: '#FFFFFF',
+  value: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.textPrimary,
+  },
+  switch: {
     fontSize: 14,
     fontWeight: '600',
+    color: colors.primary,
   },
-}); 
+});

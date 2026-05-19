@@ -16,6 +16,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import { apiService } from '../services/api';
+import { isStripeNativeAvailable, presentStripePaymentSheet } from '../services/stripePayments';
 import * as Haptics from 'expo-haptics';
 
 interface CheckoutScreenProps {
@@ -43,7 +44,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
   const { items, totalPrice, clearCart, getCartItemsByShop } = useCart();
   const { user } = useAuth();
   
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card1');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('card');
   const [selectedDeliveryOption, setSelectedDeliveryOption] = useState<string>('standard');
   const [deliveryAddress, setDeliveryAddress] = useState({
     street: user?.location?.address || '',
@@ -55,10 +56,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
   const [isProcessing, setIsProcessing] = useState(false);
 
   const paymentMethods: PaymentMethod[] = [
-    { id: 'card1', type: 'card', name: 'Credit Card', icon: 'card', lastFour: '4242' },
-    { id: 'apple_pay', type: 'apple_pay', name: 'Apple Pay', icon: 'logo-apple' },
-    { id: 'google_pay', type: 'google_pay', name: 'Google Pay', icon: 'logo-google' },
-    { id: 'paypal', type: 'paypal', name: 'PayPal', icon: 'logo-paypal' },
+    { id: 'card', type: 'card', name: 'Pay with card', icon: 'card' },
   ];
 
   const deliveryOptions: DeliveryOption[] = [
@@ -105,16 +103,17 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      // Create orders for each shop
-      const orderPromises = shopIds.map(async (shopId) => {
+      const createdOrders = [];
+
+      for (const shopId of shopIds) {
         const shopItems = cartItemsByShop[shopId];
-        return await apiService.createOrder({
-          shopId: shopId,
-          items: shopItems.map(item => ({
+        const orderResponse = await apiService.createOrder({
+          shopId,
+          items: shopItems.map((item) => ({
             productId: String(item.product._id || item.product.id),
             quantity: item.quantity,
             price: item.product.price,
-            productType: item.product.productType || 'stock'
+            productType: item.product.productType || 'stock',
           })),
           delivery: {
             method: selectedDeliveryOption,
@@ -125,27 +124,45 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
             method: selectedPaymentMethod,
           },
         });
-      });
 
-      const orders = await Promise.all(orderPromises);
-      
-      // Clear cart after successful order
+        const order = orderResponse.data;
+        const orderId = order._id || order.id;
+        const paymentResult = await apiService.createPaymentIntent(String(orderId));
+
+        if (paymentResult.data.devBypass) {
+          createdOrders.push(order);
+          continue;
+        }
+
+        const clientSecret = paymentResult.data.clientSecret;
+        if (!clientSecret) {
+          throw new Error('Payment could not be started. Check Stripe configuration.');
+        }
+
+        if (!isStripeNativeAvailable()) {
+          throw new Error(
+            'Card payments need a Local Shop development build. For Expo Go testing, set STRIPE_SKIP_PAYMENTS=true on the API.'
+          );
+        }
+
+        const payment = await presentStripePaymentSheet(clientSecret);
+        if (payment.canceled) {
+          throw new Error('Payment was canceled');
+        }
+        if (!payment.success) {
+          throw new Error(payment.error || 'Payment failed');
+        }
+
+        createdOrders.push(order);
+      }
+
       clearCart();
-      
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
-      Alert.alert(
-        'Order Placed Successfully!',
-        `Your ${orders.length} order${orders.length > 1 ? 's have' : ' has'} been confirmed. Estimated delivery: ${selectedDelivery?.estimatedTime}`,
-        [
-          {
-            text: 'Continue Shopping',
-            onPress: () => {
-              navigation.navigate('CustomerTabs', { screen: 'Home' });
-            },
-          },
-        ]
-      );
+
+      navigation.replace('OrderConfirmation', {
+        orderCount: createdOrders.length,
+        estimatedTime: selectedDelivery?.estimatedTime,
+      });
     } catch (error) {
       console.error('Order creation error:', error);
       Alert.alert('Order Failed', 'There was an error processing your order. Please try again.');

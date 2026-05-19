@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "start": "expo start --localhost --go",
+    "start:dev-client": "expo start --localhost --dev-client",
+    "android": "expo start --android --go",
+    "ios": "expo start --ios --go",
     "web": "expo start --web"
   },
   "dependencies": {
@@ -34,7 +35,9 @@
     "react-native-safe-area-context": "^5.4.0",
     "react-native-screens": "^4.11.1",
     "react-native-svg": "^15.9.0",
-    "react-native-vector-icons": "^10.2.0"
+    "react-native-vector-icons": "^10.2.0",
+    "@stripe/stripe-react-native": "0.45.0",
+    "expo-dev-client": "~5.2.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

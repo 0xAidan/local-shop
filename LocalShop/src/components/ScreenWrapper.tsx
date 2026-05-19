@@ -32,7 +32,7 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#0B0B0F',
   },
   bottomPadding: {
     paddingBottom: Platform.OS === 'ios' ? 90 : 70, // Account for bottom navigation

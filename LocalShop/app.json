@@ -1,24 +1,30 @@
 {
   "expo": {
     "name": "LocalShop",
-    "slug": "LocalShop",
+    "slug": "localshop",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "scheme": "localshop",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#09090B"
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.localshop.app",
+      "buildNumber": "1",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "This app uses location to show shops near you on the map."
+        "NSLocationWhenInUseUsageDescription": "LocalShop uses your location to show shops near you on the map.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
+      "package": "com.localshop.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -33,19 +39,31 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-              [
-          "expo-location",
-          {
-            "locationAlwaysAndWhenInUsePermission": "Allow LocalShop to use your location to show shops near you."
-          }
-        ],
-        [
-          "expo-image-picker",
-          {
-            "photosPermission": "The app accesses your photos to let you share them with your customers.",
-            "cameraPermission": "The app accesses your camera to let you take photos of your products."
-          }
-        ]
-    ]
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow LocalShop to use your location to show shops near you."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "LocalShop accesses your photos so you can add product images.",
+          "cameraPermission": "LocalShop uses your camera to photograph products."
+        }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.localshop.app",
+          "enableGooglePay": false
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
   }
 }

@@ -179,6 +179,8 @@ router.post('/',
       const shop = new Shop(shopData);
       await shop.save();
 
+      await req.user.addShop(shop._id);
+
       const populatedShop = await Shop.findById(shop._id)
         .populate('owner', 'firstName lastName username avatar');
 

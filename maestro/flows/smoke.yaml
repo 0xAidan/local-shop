@@ -1,0 +1,6 @@
+appId: com.localshop.app
+---
+# Run after installing a development build: maestro test maestro/flows/smoke.yaml
+
+- launchApp
+- assertVisible: "Discover"

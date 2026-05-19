@@ -21,7 +21,6 @@ import { apiService } from '../services/api';
 import { ProductFormData, Shop } from '../types';
 import { ImageEditor } from '../components/ImageEditor';
 import { OptimizedImage } from '../components/OptimizedImage';
-import { RoleSwitcher } from '../components/RoleSwitcher';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { ResponsiveButton } from '../components/ResponsiveButton';
 

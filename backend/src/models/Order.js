@@ -144,6 +144,22 @@ const orderSchema = new mongoose.Schema({
     paidAt: Date
   },
 
+  inventoryAdjusted: {
+    type: Boolean,
+    default: false,
+  },
+
+  refund: {
+    amount: Number,
+    reason: String,
+    stripeRefundId: String,
+    processedAt: Date,
+    processedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+  },
+
   // Financial tracking
   financials: {
     platformFee: {
@@ -191,8 +207,8 @@ const orderSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-orderSchema.index({ shop: 1, status: 1, createdAt: -1 });
-orderSchema.index({ customer: 1, createdAt: -1 });
+orderSchema.index({ 'shop.shopId': 1, status: 1, createdAt: -1 });
+orderSchema.index({ 'customer.userId': 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 
 // Pre-save middleware to calculate return deadline

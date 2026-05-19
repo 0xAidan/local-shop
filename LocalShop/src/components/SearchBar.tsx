@@ -7,11 +7,9 @@ import {
   Text,
   Modal,
   ScrollView,
-  Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-
-const { width: screenWidth } = Dimensions.get('window');
+import { Ionicons } from '@expo/vector-icons';
+import { colors, layout } from '../theme/colors';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -33,30 +31,14 @@ const categories = [
   'Specialty Food',
   'Grocery',
   'Restaurant',
-  'Butcher',
-  'Fish Market',
-  'Convenience Store',
-  'Beverages',
 ];
 
-const features = [
-  'Delivery',
-  'Pickup',
-  'Curbside',
-  'Organic',
-  'Local',
-  'Gluten-Free',
-  'Vegan',
-  'Halal',
-  'Kosher',
-  'Wheelchair Accessible',
-  'Parking Available',
-];
+const features = ['Delivery', 'Pickup', 'Organic', 'Local', 'Gluten-Free', 'Vegan'];
 
 export const SearchBar: React.FC<SearchBarProps> = ({
   onSearch,
   onFilterChange,
-  placeholder = 'Search shops...',
+  placeholder = 'Search shops',
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -68,9 +50,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   const handleFilterChange = (newFilters: SearchFilters) => {
-    const updatedFilters = { ...filters, ...newFilters };
-    setFilters(updatedFilters);
-    onFilterChange(updatedFilters);
+    const updated = { ...filters, ...newFilters };
+    setFilters(updated);
+    onFilterChange(updated);
   };
 
   const clearFilters = () => {
@@ -78,185 +60,117 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     onFilterChange({});
   };
 
-  const getActiveFiltersCount = () => {
-    let count = 0;
-    if (filters.category && filters.category !== 'All Categories') count++;
-    if (filters.rating) count++;
-    if (filters.distance) count++;
-    if (filters.features && filters.features.length > 0) count += filters.features.length;
-    return count;
-  };
+  const activeCount = [
+    filters.category && filters.category !== 'All Categories',
+    filters.rating,
+    filters.features?.length,
+  ].filter(Boolean).length;
 
   return (
-    <View style={styles.container}>
-      {/* Search Input */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchIconContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
-        </View>
+    <View>
+      <View style={styles.searchRow}>
+        <Ionicons name="search" size={18} color={colors.textMuted} style={styles.searchIcon} />
         <TextInput
-          style={styles.searchInput}
+          style={styles.input}
           placeholder={placeholder}
-          placeholderTextColor="#999999"
+          placeholderTextColor={colors.textMuted}
           value={searchQuery}
           onChangeText={handleSearch}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
         />
         <TouchableOpacity
-          style={styles.filterButton}
+          style={[styles.filterBtn, activeCount > 0 && styles.filterBtnActive]}
           onPress={() => setShowFilters(true)}
-          activeOpacity={0.8}
+          accessibilityLabel="Filters"
         >
-          <LinearGradient
-            colors={getActiveFiltersCount() > 0 ? ['#4A90E2', '#357ABD'] : ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-            style={styles.filterButtonGradient}
-          >
-            <Text style={styles.filterButtonText}>⚙️</Text>
-            {getActiveFiltersCount() > 0 && (
-              <View style={styles.filterBadge}>
-                <Text style={styles.filterBadgeText}>{getActiveFiltersCount()}</Text>
-              </View>
-            )}
-          </LinearGradient>
+          <Ionicons
+            name="options-outline"
+            size={20}
+            color={activeCount > 0 ? colors.textPrimary : colors.textMuted}
+          />
+          {activeCount > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{activeCount}</Text>
+            </View>
+          ) : null}
         </TouchableOpacity>
       </View>
 
-      {/* Filters Modal */}
-      <Modal
-        visible={showFilters}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowFilters(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <LinearGradient
-              colors={['#1a1a1a', '#000000']}
-              style={styles.modalGradient}
-            >
-              {/* Header */}
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Search Filters</Text>
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => setShowFilters(false)}
-                  activeOpacity={0.7}
-                >
-                  <LinearGradient
-                    colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-                    style={styles.closeButtonGradient}
-                  >
-                    <Text style={styles.closeButtonText}>✕</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+      <Modal visible={showFilters} animationType="slide" transparent onRequestClose={() => setShowFilters(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.sheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Filters</Text>
+              <TouchableOpacity onPress={() => setShowFilters(false)} hitSlop={12}>
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.sheetBody}>
+              <Text style={styles.sectionLabel}>Category</Text>
+              <View style={styles.chipGrid}>
+                {categories.map((category) => {
+                  const active = filters.category === category;
+                  return (
+                    <TouchableOpacity
+                      key={category}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => handleFilterChange({ category })}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{category}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
 
-              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-                {/* Category Filter */}
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterSectionTitle}>Category</Text>
-                  <View style={styles.categoryGrid}>
-                    {categories.map((category) => (
-                      <TouchableOpacity
-                        key={category}
-                        style={[
-                          styles.categoryButton,
-                          filters.category === category && styles.categoryButtonActive,
-                        ]}
-                        onPress={() => handleFilterChange({ category })}
-                        activeOpacity={0.8}
-                      >
-                        <Text
-                          style={[
-                            styles.categoryButtonText,
-                            filters.category === category && styles.categoryButtonTextActive,
-                          ]}
-                        >
-                          {category}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* Rating Filter */}
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterSectionTitle}>Minimum Rating</Text>
-                  <View style={styles.ratingContainer}>
-                    {[1, 2, 3, 4, 5].map((rating) => (
-                      <TouchableOpacity
-                        key={rating}
-                        style={[
-                          styles.ratingButton,
-                          filters.rating === rating && styles.ratingButtonActive,
-                        ]}
-                        onPress={() => handleFilterChange({ rating })}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.ratingButtonText}>
-                          {rating}+ ⭐
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* Features Filter */}
-                <View style={styles.filterSection}>
-                  <Text style={styles.filterSectionTitle}>Features</Text>
-                  <View style={styles.featuresGrid}>
-                    {features.map((feature) => (
-                      <TouchableOpacity
-                        key={feature}
-                        style={[
-                          styles.featureButton,
-                          filters.features?.includes(feature) && styles.featureButtonActive,
-                        ]}
-                        onPress={() => {
-                          const currentFeatures = filters.features || [];
-                          const newFeatures = currentFeatures.includes(feature)
-                            ? currentFeatures.filter(f => f !== feature)
-                            : [...currentFeatures, feature];
-                          handleFilterChange({ features: newFeatures });
-                        }}
-                        activeOpacity={0.8}
-                      >
-                        <Text
-                          style={[
-                            styles.featureButtonText,
-                            filters.features?.includes(feature) && styles.featureButtonTextActive,
-                          ]}
-                        >
-                          {feature}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              </ScrollView>
-
-              {/* Footer */}
-              <View style={styles.modalFooter}>
-                <TouchableOpacity 
-                  style={styles.clearButton} 
-                  onPress={clearFilters}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.clearButtonText}>Clear All</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.applyButton}
-                  onPress={() => setShowFilters(false)}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient
-                    colors={['#4A90E2', '#357ABD']}
-                    style={styles.applyButtonGradient}
-                  >
-                    <Text style={styles.applyButtonText}>Apply Filters</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+              <Text style={styles.sectionLabel}>Minimum rating</Text>
+              <View style={styles.chipGrid}>
+                {[3, 4, 4.5].map((rating) => {
+                  const active = filters.rating === rating;
+                  return (
+                    <TouchableOpacity
+                      key={rating}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => handleFilterChange({ rating })}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{rating}+ stars</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-            </LinearGradient>
+
+              <Text style={styles.sectionLabel}>Features</Text>
+              <View style={styles.chipGrid}>
+                {features.map((feature) => {
+                  const selected = filters.features?.includes(feature);
+                  return (
+                    <TouchableOpacity
+                      key={feature}
+                      style={[styles.chip, selected && styles.chipActive]}
+                      onPress={() => {
+                        const current = filters.features ?? [];
+                        const next = selected
+                          ? current.filter((f) => f !== feature)
+                          : [...current, feature];
+                        handleFilterChange({ features: next });
+                      }}
+                    >
+                      <Text style={[styles.chipText, selected && styles.chipTextActive]}>{feature}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
+            <View style={styles.sheetFooter}>
+              <TouchableOpacity style={styles.secondaryBtn} onPress={clearFilters}>
+                <Text style={styles.secondaryBtnText}>Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.primaryBtn} onPress={() => setShowFilters(false)}>
+                <Text style={styles.primaryBtnText}>Apply</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -265,234 +179,142 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: 20,
-    marginVertical: 16,
-  },
-  searchContainer: {
+  searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    backgroundColor: colors.surface,
+    borderRadius: layout.cardRadius,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  searchIconContainer: {
-    marginRight: 12,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    minHeight: 44,
   },
   searchIcon: {
-    fontSize: 18,
-    opacity: 0.7,
+    marginRight: 8,
   },
-  searchInput: {
+  input: {
     flex: 1,
-    color: '#FFFFFF',
     fontSize: 16,
-    paddingVertical: 12,
-    fontWeight: '500',
+    color: colors.textPrimary,
+    paddingVertical: 10,
   },
-  filterButton: {
-    marginLeft: 12,
-  },
-  filterButtonGradient: {
-    padding: 10,
-    borderRadius: 12,
+  filterBtn: {
+    padding: 6,
+    marginLeft: 4,
     position: 'relative',
   },
-  filterButtonText: {
-    fontSize: 18,
+  filterBtnActive: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 8,
   },
-  filterBadge: {
+  badge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#FF4757',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
+    top: 0,
+    right: 0,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#000000',
+    justifyContent: 'center',
   },
-  filterBadgeText: {
-    color: '#FFFFFF',
+  badgeText: {
     fontSize: 10,
     fontWeight: '700',
+    color: colors.background,
   },
-  modalOverlay: {
+  modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'flex-end',
   },
-  modalContent: {
-    height: '85%',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: 'hidden',
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: '85%',
   },
-  modalGradient: {
-    flex: 1,
-  },
-  modalHeader: {
+  sheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    padding: layout.screenPadding,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-  },
-  closeButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  closeButtonGradient: {
-    padding: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeButtonText: {
-    color: '#FFFFFF',
+  sheetTitle: {
     fontSize: 18,
     fontWeight: '600',
+    color: colors.textPrimary,
   },
-  modalBody: {
-    flex: 1,
-    padding: 24,
+  sheetBody: {
+    padding: layout.screenPadding,
   },
-  filterSection: {
-    marginBottom: 32,
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+    marginTop: 8,
   },
-  filterSectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  chipGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     marginBottom: 16,
-    letterSpacing: -0.3,
   },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  categoryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: layout.chipRadius,
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: colors.border,
   },
-  categoryButtonActive: {
-    backgroundColor: '#4A90E2',
-    borderColor: '#4A90E2',
+  chipActive: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(107, 154, 196, 0.15)',
   },
-  categoryButtonText: {
-    color: '#FFFFFF',
+  chipText: {
     fontSize: 14,
-    fontWeight: '500',
+    color: colors.textSecondary,
   },
-  categoryButtonTextActive: {
-    fontWeight: '700',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  ratingButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  ratingButtonActive: {
-    backgroundColor: '#4A90E2',
-    borderColor: '#4A90E2',
-  },
-  ratingButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  featureButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  featureButtonActive: {
-    backgroundColor: '#4A90E2',
-    borderColor: '#4A90E2',
-  },
-  featureButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  featureButtonTextActive: {
-    fontWeight: '700',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 24,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    gap: 16,
-  },
-  clearButton: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    alignItems: 'center',
-  },
-  clearButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+  chipTextActive: {
+    color: colors.textPrimary,
     fontWeight: '600',
   },
-  applyButton: {
+  sheetFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: layout.screenPadding,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  secondaryBtn: {
     flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  applyButtonGradient: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: 'center',
+    borderRadius: layout.cardRadius,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
   },
-  applyButtonText: {
-    color: '#FFFFFF',
+  secondaryBtnText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
-}); 
+  primaryBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderRadius: layout.cardRadius,
+    backgroundColor: colors.primary,
+  },
+  primaryBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.background,
+  },
+});

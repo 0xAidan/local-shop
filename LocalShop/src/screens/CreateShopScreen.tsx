@@ -25,7 +25,6 @@ import * as Location from 'expo-location';
 import { apiService } from '../services/api';
 import { ShopFormData } from '../types';
 import { OptimizedImage } from '../components/OptimizedImage';
-import { RoleSwitcher } from '../components/RoleSwitcher';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { ResponsiveButton } from '../components/ResponsiveButton';
 

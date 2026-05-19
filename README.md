@@ -2,6 +2,8 @@
 
 A comprehensive local shop discovery and management platform with a React Native mobile app and a full-featured backend API. This project helps local businesses connect with customers in their area.
 
+**Store readiness:** See [SETUP.md](./SETUP.md) for deployment, Stripe, Expo/EAS, and what you need to configure manually.
+
 ## 🏗️ Project Structure
 
 ```

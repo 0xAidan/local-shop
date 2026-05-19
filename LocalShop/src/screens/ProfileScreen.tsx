@@ -9,22 +9,51 @@ import {
   Switch,
   StatusBar,
   Alert,
+  Linking,
 } from 'react-native';
+import { apiService } from '../services/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import { RoleSwitcher } from '../components/RoleSwitcher';
+import { DeleteAccountModal } from '../components/DeleteAccountModal';
 
 interface ProfileScreenProps {
   navigation: any;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
-  const { user, logout, currentViewMode, switchViewMode, canSwitchToShopOwner } = useAuth();
+  const { user, logout, currentViewMode, switchViewMode, canSwitchToShopOwner, refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editedUser, setEditedUser] = useState<User | null>(user);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const privacyUrl = process.env.EXPO_PUBLIC_PRIVACY_URL || 'https://localshop.app/privacy';
+  const termsUrl = process.env.EXPO_PUBLIC_TERMS_URL || 'https://localshop.app/terms';
+  const supportUrl = process.env.EXPO_PUBLIC_SUPPORT_URL || 'mailto:support@localshop.app';
+
+  const handleOpenUrl = async (url: string) => {
+    const canOpen = await Linking.canOpenURL(url);
+    if (!canOpen) {
+      Alert.alert('Unable to open link', url);
+      return;
+    }
+    await Linking.openURL(url);
+  };
+
+  const handleDeleteAccount = () => {
+    setDeleteModalVisible(true);
+  };
+
+  const handleConfirmDeleteAccount = async (password: string) => {
+    await apiService.deleteAccount(password);
+    setDeleteModalVisible(false);
+    await logout();
+    Alert.alert('Account deleted', 'Your account has been removed.');
+  };
 
   const handleLogout = async () => {
     Alert.alert(
@@ -62,13 +91,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   };
 
   const handleSave = async () => {
+    if (!editedUser) return;
+    setSaving(true);
     try {
-      // TODO: Implement API call to update user profile
+      await apiService.updateProfile({
+        firstName: editedUser.firstName,
+        lastName: editedUser.lastName,
+        phone: editedUser.phone,
+        location: editedUser.location,
+        preferences: editedUser.preferences,
+      });
+      await refreshUser();
       setIsEditing(false);
       Alert.alert('Success', 'Profile updated successfully!');
     } catch (error) {
       console.error('Update error:', error);
       Alert.alert('Error', 'Failed to update profile. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -146,9 +186,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
           <View style={styles.headerActions}>
-            {/* Role Switcher - Development Mode */}
-            {/* TODO: Remove this when authentication is re-enabled */}
-            <RoleSwitcher />
             {isEditing ? (
               <>
                 <TouchableOpacity
@@ -163,8 +200,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                 <TouchableOpacity
                   style={styles.saveButton}
                   onPress={handleSave}
+                  disabled={saving}
                 >
-                  <Text style={styles.saveButtonText}>Save</Text>
+                  <Text style={styles.saveButtonText}>{saving ? 'Saving…' : 'Save'}</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -316,16 +354,21 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             />
           </ProfileSection>
 
+          <RoleSwitcher />
+
           {/* Account Actions */}
           <ProfileSection title="Account">
-            <TouchableOpacity style={styles.actionButton}>
-              <Text style={styles.actionButtonText}>Change Password</Text>
+            <TouchableOpacity style={styles.actionButton} onPress={() => handleOpenUrl(privacyUrl)}>
+              <Text style={styles.actionButtonText}>Privacy Policy</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <Text style={styles.actionButtonText}>Privacy Settings</Text>
+            <TouchableOpacity style={styles.actionButton} onPress={() => handleOpenUrl(termsUrl)}>
+              <Text style={styles.actionButtonText}>Terms of Service</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => handleOpenUrl(supportUrl)}>
               <Text style={styles.actionButtonText}>Help & Support</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={handleDeleteAccount}>
+              <Text style={[styles.actionButtonText, styles.destructiveText]}>Delete Account</Text>
             </TouchableOpacity>
           </ProfileSection>
 
@@ -337,6 +380,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           <View style={styles.bottomSpacing} />
         </ScrollView>
       </LinearGradient>
+      <DeleteAccountModal
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+        onConfirm={handleConfirmDeleteAccount}
+      />
     </ScreenWrapper>
   );
 };
@@ -500,6 +548,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#333333',
+  },
+  destructiveText: {
+    color: '#E74C3C',
   },
   actionButtonText: {
     fontSize: 16,

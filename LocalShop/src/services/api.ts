@@ -9,9 +9,10 @@ import {
   ProductFormData 
 } from '../types';
 
-// Use mock API for testing (set to false to use real backend)
-const USE_MOCK_API = false;
-const API_BASE_URL = 'http://10.0.0.97:3001/api';
+const USE_MOCK_API = process.env.EXPO_PUBLIC_USE_MOCK_API === 'true';
+const ALLOW_MOCK_FALLBACK = process.env.EXPO_PUBLIC_ALLOW_MOCK_FALLBACK === 'true';
+const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 // Import mock service
 import { mockApiService } from './mockApi';
@@ -35,8 +36,11 @@ class ApiService {
 
   // Enable fallback to mock API if real API fails
   private enableMockFallback() {
+    if (!ALLOW_MOCK_FALLBACK) {
+      return;
+    }
     if (!this.useMockAsFallback) {
-      console.log('⚠️ Real API failed, switching to mock API as fallback');
+      console.warn('Real API failed; using mock API fallback');
       this.useMockAsFallback = true;
     }
   }
@@ -97,7 +101,9 @@ class ApiService {
     const headers = await this.getHeaders();
 
     try {
-      console.log(`🌐 Making API request to: ${url}`);
+      if (__DEV__) {
+        console.log(`🌐 Making API request to: ${url}`);
+      }
       
       const response = await fetch(url, {
         ...options,
@@ -107,16 +113,22 @@ class ApiService {
         },
       });
 
-      console.log(`📡 Response status: ${response.status}`);
+      if (__DEV__) {
+        console.log(`📡 Response status: ${response.status}`);
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        console.error(`❌ API Error ${response.status}:`, errorData);
+        if (__DEV__) {
+          console.error(`❌ API Error ${response.status}:`, errorData);
+        }
         throw new Error(errorData.message || `HTTP ${response.status}: API request failed`);
       }
 
       const data = await response.json();
-      console.log(`✅ API request successful: ${endpoint}`);
+      if (__DEV__) {
+        console.log(`✅ API request successful: ${endpoint}`);
+      }
       return data;
     } catch (error) {
       console.error('API request failed:', error);
@@ -404,10 +416,15 @@ class ApiService {
   }
 
   // Order Management
+  async getMyOrders(): Promise<{ data: { orders: any[]; pagination: any } }> {
+    const response = await this.request('/orders/my');
+    return response as { data: { orders: any[]; pagination: any } };
+  }
+
   async getShopOrders(shopId: string, options: any = {}): Promise<{ data: { orders: any[]; pagination: { currentPage: number; totalPages: number; totalOrders: number; hasNext: boolean; hasPrev: boolean; }; }; }> {
-    const response = await this.request(`/shops/${shopId}/orders`, {
+    const query = new URLSearchParams(options).toString();
+    const response = await this.request(`/orders/shop/${shopId}${query ? `?${query}` : ''}`, {
       method: 'GET',
-      body: JSON.stringify(options),
     });
     
     // Transform the response to match expected format
@@ -470,6 +487,63 @@ class ApiService {
 
     const response = await this.request(`/orders/shop/${shopId}/stats?period=${period}`);
     return response;
+  }
+
+  async createPaymentIntent(orderId: string): Promise<{
+    data: {
+      clientSecret?: string;
+      paymentIntentId?: string;
+      devBypass?: boolean;
+      order?: any;
+    };
+  }> {
+    const response = await this.request(`/payments/orders/${orderId}/intent`, {
+      method: 'POST',
+    });
+    return response;
+  }
+
+  async getPaymentConfig(): Promise<{
+    data: { stripeEnabled: boolean; publishableKey: string | null };
+  }> {
+    return this.request('/payments/config');
+  }
+
+  async startConnectOnboarding(
+    shopId: string,
+    urls: { returnUrl: string; refreshUrl: string }
+  ): Promise<{ url: string; accountId: string }> {
+    const response = await this.request<{ url: string; accountId: string }>(
+      `/payments/connect/onboard/${shopId}`,
+      {
+        method: 'POST',
+        body: JSON.stringify(urls),
+      }
+    );
+    return response.data;
+  }
+
+  async getConnectStatus(shopId: string): Promise<{
+    stripeConnectAccountId?: string;
+    stripeConnectChargesEnabled?: boolean;
+    stripeConnectPayoutsEnabled?: boolean;
+    stripeConnectDetailsSubmitted?: boolean;
+  }> {
+    const response = await this.request<{
+      stripeConnectAccountId?: string;
+      stripeConnectChargesEnabled?: boolean;
+      stripeConnectPayoutsEnabled?: boolean;
+      stripeConnectDetailsSubmitted?: boolean;
+    }>(`/payments/connect/status/${shopId}`);
+    return response.data;
+  }
+
+  async deleteAccount(password: string): Promise<void> {
+    await this.request('/users/account', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    });
+    await this.logout();
   }
 
   async createOrder(orderData: {

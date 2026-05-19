@@ -15,7 +15,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { Shop } from '../types';
 import { apiService } from '../services/api';
-import { RoleSwitcher } from '../components/RoleSwitcher';
 import { ResponsiveButton } from '../components/ResponsiveButton';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -37,46 +36,8 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
   const loadShops = async () => {
     try {
       setIsLoading(true);
-      // TODO: Replace with real API call when backend is connected
-      // const response = await apiService.getMyShops();
-      // setShops(response.data);
-      
-      // For now, use mock data
-      const mockShops: Shop[] = [
-        {
-          id: 1,
-          name: "Joe's Coffee Shop",
-          description: "The best coffee in town",
-          category: "Coffee",
-          location: {
-            address: "123 Main St",
-            coordinates: { latitude: 48.3809, longitude: -89.2477 },
-            city: "Thunder Bay",
-            province: "ON",
-            postalCode: "P7A 1A1"
-          },
-          rating: { average: 4.5, count: 12 },
-          isActive: true,
-          isVerified: true,
-        },
-        {
-          id: 2,
-          name: "Fresh Market Deli",
-          description: "Fresh local produce and deli items",
-          category: "Grocery",
-          location: {
-            address: "456 Park Ave",
-            coordinates: { latitude: 48.3809, longitude: -89.2477 },
-            city: "Thunder Bay",
-            province: "ON",
-            postalCode: "P7A 2B2"
-          },
-          rating: { average: 4.2, count: 8 },
-          isActive: true,
-          isVerified: false,
-        }
-      ];
-      setShops(mockShops);
+      const userShops = await apiService.getUserShops();
+      setShops(userShops);
     } catch (error) {
       console.error('Error loading shops:', error);
       Alert.alert('Error', 'Failed to load shops. Please try again.');
@@ -108,19 +69,17 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
     navigation.navigate('CreateProduct', { shopId: shop._id || shop.id });
   };
 
-  const handleManageOrders = (shop: Shop) => {
-    navigation.navigate('OrderManagement', { shop });
+  const handleConnectSetup = (shop: Shop) => {
+    navigation.navigate('ConnectOnboarding', { shop });
   };
 
   const handleToggleShopStatus = async (shop: Shop) => {
+    const shopId = String(shop._id || shop.id);
     try {
-      // TODO: Implement API call to toggle shop status
-      const updatedShops = shops.map(s => 
-        s.id === shop.id 
-          ? { ...s, isActive: !s.isActive }
-          : s
+      const updated = await apiService.updateShop(shopId, { isActive: !shop.isActive });
+      setShops((prev) =>
+        prev.map((s) => (String(s._id || s.id) === shopId ? { ...s, ...updated, isActive: !shop.isActive } : s))
       );
-      setShops(updatedShops);
       Alert.alert('Success', `Shop ${shop.isActive ? 'deactivated' : 'activated'} successfully!`);
     } catch (error) {
       console.error('Error toggling shop status:', error);
@@ -141,10 +100,10 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            const shopId = String(shop._id || shop.id);
             try {
-              // TODO: Implement API call to delete shop
-              const updatedShops = shops.filter(s => s.id !== shop.id);
-              setShops(updatedShops);
+              await apiService.deleteShop(shopId);
+              setShops((prev) => prev.filter((s) => String(s._id || s.id) !== shopId));
               Alert.alert('Success', 'Shop deleted successfully!');
             } catch (error) {
               console.error('Error deleting shop:', error);
@@ -212,7 +171,14 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
         />
         <ResponsiveButton
           title="Orders"
-          onPress={() => handleManageOrders(shop)}
+          onPress={() => navigation.navigate('OrderManagement', { shop })}
+          variant="outline"
+          size="small"
+          style={styles.actionButton}
+        />
+        <ResponsiveButton
+          title="Payments"
+          onPress={() => handleConnectSetup(shop)}
           variant="outline"
           size="small"
           style={styles.actionButton}
@@ -253,9 +219,6 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>My Shops</Text>
           <View style={styles.headerActions}>
-            {/* Role Switcher - Development Mode */}
-            {/* TODO: Remove this when authentication is re-enabled */}
-            <RoleSwitcher />
             <TouchableOpacity
               style={styles.createButton}
               onPress={handleCreateShop}
