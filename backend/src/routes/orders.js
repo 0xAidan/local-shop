@@ -5,6 +5,8 @@ const Product = require('../models/Product');
 const { authenticateToken } = require('../middleware/auth');
 const Notification = require('../models/Notification');
 const { userOwnsShop, toObjectId } = require('../utils/shopAccess');
+const { getPlatformFeeDollars, refundPaymentIntent, allowDevPaymentBypass } = require('../services/stripe');
+const { reserveInventoryForOrder, restoreInventoryForOrder } = require('../utils/orderInventory');
 
 // Create a new order
 router.post('/', authenticateToken, async (req, res) => {
@@ -43,7 +45,7 @@ router.post('/', authenticateToken, async (req, res) => {
         });
       }
 
-      // Check inventory for stock products
+      // Check inventory for stock products (reserve on payment, not at order create)
       if (product.productType === 'stock' && product.inventory) {
         if (product.inventory.quantity < item.quantity) {
           return res.status(400).json({
@@ -51,9 +53,6 @@ router.post('/', authenticateToken, async (req, res) => {
             message: `Insufficient inventory for ${product.name}. Available: ${product.inventory.quantity}`
           });
         }
-        // Reduce inventory
-        product.inventory.quantity -= item.quantity;
-        await product.save();
       }
 
       const unitPrice = product.price;
@@ -73,7 +72,7 @@ router.post('/', authenticateToken, async (req, res) => {
     const tax = subtotal * 0.08; // 8% tax
     const deliveryFee = delivery.method === 'pickup' ? 0 : 2.99;
     const total = subtotal + tax + deliveryFee;
-    const platformFee = total * 0.029 + 0.30; // 2.9% + $0.30
+    const platformFee = getPlatformFeeDollars(total);
     const netAmount = total - platformFee;
 
     // Create order
@@ -296,6 +295,17 @@ router.patch('/:orderId/status', authenticateToken, async (req, res) => {
       });
     }
 
+    const paidStatuses = ['confirmed', 'preparing', 'ready', 'completed'];
+    if (paidStatuses.includes(status) && order.payment.status !== 'paid') {
+      const canBypass = allowDevPaymentBypass() && order.payment.transactionId?.startsWith('dev_');
+      if (!canBypass) {
+        return res.status(400).json({
+          success: false,
+          message: 'Order must be paid before updating fulfillment status',
+        });
+      }
+    }
+
     // Validate status transition
     const validTransitions = {
       'pending': ['confirmed', 'cancelled'],
@@ -318,9 +328,10 @@ router.patch('/:orderId/status', authenticateToken, async (req, res) => {
     order.status = status;
     order.statusUpdatedAt = new Date();
     
-    // If order is cancelled or refunded, restore inventory
-    if (status === 'cancelled' || status === 'refunded') {
-      await restoreInventory(order.items);
+    // If order is cancelled or refunded, restore inventory when it was reserved
+    if ((status === 'cancelled' || status === 'refunded') && order.inventoryAdjusted) {
+      await restoreInventoryForOrder(order.items);
+      order.inventoryAdjusted = false;
     }
 
     await order.save();
@@ -389,33 +400,50 @@ router.post('/:orderId/refund', authenticateToken, async (req, res) => {
       });
     }
 
-    // Validate refund amount
-    if (refundAmount > order.total) {
+    const refundAmountValue = refundAmount ?? order.total;
+
+    if (refundAmountValue > order.total) {
       return res.status(400).json({
         success: false,
         message: 'Refund amount cannot exceed order total'
       });
     }
 
+    let stripeRefundId = null;
+    if (order.payment.transactionId && !order.payment.transactionId.startsWith('dev_')) {
+      try {
+        const refundCents = Math.round(refundAmountValue * 100);
+        const stripeRefund = await refundPaymentIntent(order.payment.transactionId, refundCents);
+        stripeRefundId = stripeRefund.id;
+      } catch (stripeError) {
+        console.error('Stripe refund error:', stripeError);
+        return res.status(502).json({
+          success: false,
+          message: 'Stripe refund failed. Try again or contact support.',
+        });
+      }
+    }
+
     // Process refund
     order.status = 'refunded';
-    order.payment.status = 'refunded';
+    order.payment.status = refundAmountValue < order.total ? 'partially_refunded' : 'refunded';
     order.statusUpdatedAt = new Date();
 
-    // Add refund details
     order.refund = {
-      amount: refundAmount,
+      amount: refundAmountValue,
       reason,
+      stripeRefundId,
       processedAt: new Date(),
-      processedBy: user._id
+      processedBy: user._id,
     };
 
-    // Restore inventory for refunded items
-    if (items && items.length > 0) {
-      await restoreInventory(items);
-    } else {
-      // Full refund - restore all items
-      await restoreInventory(order.items);
+    if (order.inventoryAdjusted) {
+      if (items && items.length > 0) {
+        await restoreInventoryForOrder(items);
+      } else {
+        await restoreInventoryForOrder(order.items);
+      }
+      order.inventoryAdjusted = false;
     }
 
     await order.save();
@@ -533,23 +561,5 @@ router.get('/shop/:shopId/stats', authenticateToken, async (req, res) => {
     });
   }
 });
-
-// Helper function to restore inventory
-async function restoreInventory(items) {
-  for (const item of items) {
-    try {
-      const product = await Product.findById(item.product);
-      if (product && product.inventory) {
-        // Only restore inventory for stock products
-        if (product.productType === 'stock') {
-          product.inventory.quantity += item.quantity;
-          await product.save();
-        }
-      }
-    } catch (error) {
-      console.error(`Error restoring inventory for product ${item.product}:`, error);
-    }
-  }
-}
 
 module.exports = router; 

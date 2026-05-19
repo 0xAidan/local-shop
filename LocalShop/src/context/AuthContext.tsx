@@ -20,6 +20,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   switchViewMode: (mode: 'customer' | 'shop_owner') => void;
   canSwitchToShopOwner: () => boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -120,6 +121,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return __DEV__ && Boolean(user.shops?.length);
   };
 
+  const refreshUser = async () => {
+    if (!apiService.isAuthenticated()) return;
+    const userData = await apiService.getCurrentUser();
+    setUser(userData);
+  };
+
   const value = {
     user,
     isAuthenticated,
@@ -130,6 +137,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     switchViewMode,
     canSwitchToShopOwner,
+    refreshUser,
   };
 
   return (

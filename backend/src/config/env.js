@@ -1,6 +1,8 @@
 const requiredInProduction = [
   'MONGODB_URI',
   'JWT_SECRET',
+  'STRIPE_SECRET_KEY',
+  'STRIPE_WEBHOOK_SECRET',
 ];
 
 const validateEnv = () => {
@@ -17,8 +19,13 @@ const validateEnv = () => {
     process.exit(1);
   }
 
-  if (isProduction && !process.env.STRIPE_SECRET_KEY) {
-    console.warn('⚠️ STRIPE_SECRET_KEY is not set — payments will not work in production');
+  if (isProduction && process.env.STRIPE_SKIP_PAYMENTS === 'true') {
+    console.error('STRIPE_SKIP_PAYMENTS must not be enabled in production');
+    process.exit(1);
+  }
+
+  if (isProduction && !process.env.CORS_ORIGINS && !process.env.ADMIN_WEB_URL) {
+    console.warn('⚠️ Set CORS_ORIGINS or ADMIN_WEB_URL for production admin access');
   }
 };
 

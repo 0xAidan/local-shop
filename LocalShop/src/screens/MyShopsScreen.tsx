@@ -69,19 +69,17 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
     navigation.navigate('CreateProduct', { shopId: shop._id || shop.id });
   };
 
-  const handleManageOrders = (shop: Shop) => {
-    navigation.navigate('OrderManagement', { shop });
+  const handleConnectSetup = (shop: Shop) => {
+    navigation.navigate('ConnectOnboarding', { shop });
   };
 
   const handleToggleShopStatus = async (shop: Shop) => {
+    const shopId = String(shop._id || shop.id);
     try {
-      // TODO: Implement API call to toggle shop status
-      const updatedShops = shops.map(s => 
-        s.id === shop.id 
-          ? { ...s, isActive: !s.isActive }
-          : s
+      const updated = await apiService.updateShop(shopId, { isActive: !shop.isActive });
+      setShops((prev) =>
+        prev.map((s) => (String(s._id || s.id) === shopId ? { ...s, ...updated, isActive: !shop.isActive } : s))
       );
-      setShops(updatedShops);
       Alert.alert('Success', `Shop ${shop.isActive ? 'deactivated' : 'activated'} successfully!`);
     } catch (error) {
       console.error('Error toggling shop status:', error);
@@ -102,10 +100,10 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            const shopId = String(shop._id || shop.id);
             try {
-              // TODO: Implement API call to delete shop
-              const updatedShops = shops.filter(s => s.id !== shop.id);
-              setShops(updatedShops);
+              await apiService.deleteShop(shopId);
+              setShops((prev) => prev.filter((s) => String(s._id || s.id) !== shopId));
               Alert.alert('Success', 'Shop deleted successfully!');
             } catch (error) {
               console.error('Error deleting shop:', error);
@@ -173,7 +171,14 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
         />
         <ResponsiveButton
           title="Orders"
-          onPress={() => handleManageOrders(shop)}
+          onPress={() => navigation.navigate('OrderManagement', { shop })}
+          variant="outline"
+          size="small"
+          style={styles.actionButton}
+        />
+        <ResponsiveButton
+          title="Payments"
+          onPress={() => handleConnectSetup(shop)}
           variant="outline"
           size="small"
           style={styles.actionButton}

@@ -8,6 +8,7 @@ import {
   StatusBar,
   RefreshControl,
   Alert,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +29,16 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'favorites' | 'orders'>('favorites');
+  const supportUrl = process.env.EXPO_PUBLIC_SUPPORT_URL || 'mailto:support@localshop.app';
+
+  const handleOpenSupport = async () => {
+    const canOpen = await Linking.canOpenURL(supportUrl);
+    if (!canOpen) {
+      Alert.alert('Support', supportUrl);
+      return;
+    }
+    await Linking.openURL(supportUrl);
+  };
 
   useEffect(() => {
     loadData();
@@ -196,7 +207,7 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
               <QuickAction
                 iconName="help-circle-outline"
                 title="Support"
-                onPress={() => Alert.alert('Support', 'Contact support coming soon!')}
+                onPress={handleOpenSupport}
               />
               <QuickAction
                 iconName="star-outline"

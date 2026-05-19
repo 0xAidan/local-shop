@@ -144,6 +144,22 @@ const orderSchema = new mongoose.Schema({
     paidAt: Date
   },
 
+  inventoryAdjusted: {
+    type: Boolean,
+    default: false,
+  },
+
+  refund: {
+    amount: Number,
+    reason: String,
+    stripeRefundId: String,
+    processedAt: Date,
+    processedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+  },
+
   // Financial tracking
   financials: {
     platformFee: {

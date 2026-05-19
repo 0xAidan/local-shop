@@ -25,13 +25,34 @@ const getPlatformFeeCents = (amountCents) => {
   return Math.round(amountCents * (percent / 100) + fixed);
 };
 
-const createPaymentIntentForOrder = async (order, shop) => {
+const getPlatformFeeDollars = (totalDollars) => {
+  const amountCents = Math.round(totalDollars * 100);
+  return getPlatformFeeCents(amountCents) / 100;
+};
+
+const createPaymentIntentForOrder = async (order, shop, options = {}) => {
   const stripe = getStripe();
   if (!stripe) {
     if (allowDevPaymentBypass()) {
       return { devBypass: true };
     }
     throw new Error('Stripe is not configured');
+  }
+
+  if (order.payment.transactionId && order.payment.status === 'pending') {
+    try {
+      const existing = await stripe.paymentIntents.retrieve(order.payment.transactionId);
+      if (existing.status === 'requires_payment_method' || existing.status === 'requires_confirmation' || existing.status === 'requires_action') {
+        return {
+          clientSecret: existing.client_secret,
+          paymentIntentId: existing.id,
+          devBypass: false,
+          reused: true,
+        };
+      }
+    } catch (error) {
+      console.warn('Could not retrieve existing PaymentIntent, creating new one:', error.message);
+    }
   }
 
   const amountCents = Math.round(order.total * 100);
@@ -52,12 +73,17 @@ const createPaymentIntentForOrder = async (order, shop) => {
     intentParams.application_fee_amount = applicationFeeAmount;
   }
 
-  const paymentIntent = await stripe.paymentIntents.create(intentParams);
+  const requestOptions = {};
+  const idempotencyKey = options.idempotencyKey || `order_${order._id}`;
+  requestOptions.idempotencyKey = idempotencyKey;
+
+  const paymentIntent = await stripe.paymentIntents.create(intentParams, requestOptions);
 
   return {
     clientSecret: paymentIntent.client_secret,
     paymentIntentId: paymentIntent.id,
     devBypass: false,
+    reused: false,
   };
 };
 
@@ -117,24 +143,44 @@ const refreshConnectAccountStatus = async (shop) => {
   return shop;
 };
 
+const syncConnectAccountByStripeId = async (accountId) => {
+  const stripe = getStripe();
+  if (!stripe) {
+    return null;
+  }
+
+  const Shop = require('../models/Shop');
+  const shop = await Shop.findOne({ stripeConnectAccountId: accountId });
+  if (!shop) {
+    return null;
+  }
+
+  return refreshConnectAccountStatus(shop);
+};
+
 const refundPaymentIntent = async (paymentIntentId, amountCents) => {
   const stripe = getStripe();
   if (!stripe) {
     throw new Error('Stripe is not configured');
   }
 
-  return stripe.refunds.create({
-    payment_intent: paymentIntentId,
-    amount: amountCents,
-  });
+  const params = { payment_intent: paymentIntentId };
+  if (amountCents) {
+    params.amount = amountCents;
+  }
+
+  return stripe.refunds.create(params);
 };
 
 module.exports = {
   getStripe,
   isStripeEnabled,
   allowDevPaymentBypass,
+  getPlatformFeeCents,
+  getPlatformFeeDollars,
   createPaymentIntentForOrder,
   createConnectAccountLink,
   refreshConnectAccountStatus,
+  syncConnectAccountByStripeId,
   refundPaymentIntent,
 };

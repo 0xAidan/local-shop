@@ -22,6 +22,7 @@ import { CartScreen } from '../screens/CartScreen';
 import { CheckoutScreen } from '../screens/CheckoutScreen';
 import { OrderConfirmationScreen } from '../screens/OrderConfirmationScreen';
 import { OrderManagementScreen } from '../screens/OrderManagementScreen';
+import { ConnectOnboardingScreen } from '../screens/ConnectOnboardingScreen';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -41,6 +42,7 @@ export type RootStackParamList = {
   Checkout: undefined;
   OrderConfirmation: { orderCount: number; estimatedTime?: string };
   OrderManagement: { shop: any };
+  ConnectOnboarding: { shop: any };
   ShopOwnerTabs: undefined;
   CustomerTabs: undefined;
 };
@@ -54,6 +56,7 @@ const CustomerTabNavigator = () => {
   
   return (
     <Tab.Navigator
+      id={undefined}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -191,6 +194,7 @@ const CustomerTabNavigator = () => {
 const ShopOwnerTabNavigator = () => {
   return (
     <Tab.Navigator
+      id={undefined}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -295,6 +299,7 @@ export const AppNavigator: React.FC = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator
+        id={undefined}
         screenOptions={{
           headerShown: false,
           cardStyle: { backgroundColor: '#000000' },
@@ -321,6 +326,7 @@ export const AppNavigator: React.FC = () => {
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="ShopDetail" component={ShopDetailScreen} />
             <Stack.Screen name="OrderManagement" component={OrderManagementScreen} />
+            <Stack.Screen name="ConnectOnboarding" component={ConnectOnboardingScreen} />
           </>
         ) : (
           // Customer Flow

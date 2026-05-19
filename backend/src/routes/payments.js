@@ -10,6 +10,7 @@ const {
   createConnectAccountLink,
   refreshConnectAccountStatus,
 } = require('../services/stripe');
+const { reserveInventoryForOrder } = require('../utils/orderInventory');
 
 router.post('/orders/:orderId/intent', authenticateToken, async (req, res) => {
   try {
@@ -35,6 +36,8 @@ router.post('/orders/:orderId/intent', authenticateToken, async (req, res) => {
     const paymentResult = await createPaymentIntentForOrder(order, shop);
 
     if (paymentResult.devBypass) {
+      await reserveInventoryForOrder(order.items);
+      order.inventoryAdjusted = true;
       order.payment.status = 'paid';
       order.payment.transactionId = `dev_${Date.now()}`;
       order.payment.paidAt = new Date();

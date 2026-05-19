@@ -18,15 +18,18 @@ import { useAuth } from '../context/AuthContext';
 import { User } from '../types';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import { RoleSwitcher } from '../components/RoleSwitcher';
+import { DeleteAccountModal } from '../components/DeleteAccountModal';
 
 interface ProfileScreenProps {
   navigation: any;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
-  const { user, logout, currentViewMode, switchViewMode, canSwitchToShopOwner } = useAuth();
+  const { user, logout, currentViewMode, switchViewMode, canSwitchToShopOwner, refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editedUser, setEditedUser] = useState<User | null>(user);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const privacyUrl = process.env.EXPO_PUBLIC_PRIVACY_URL || 'https://localshop.app/privacy';
   const termsUrl = process.env.EXPO_PUBLIC_TERMS_URL || 'https://localshop.app/terms';
@@ -42,31 +45,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   };
 
   const handleDeleteAccount = () => {
-    Alert.prompt(
-      'Delete account',
-      'Enter your password to permanently delete your account.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async (password) => {
-            if (!password) {
-              Alert.alert('Password required', 'Please enter your password.');
-              return;
-            }
-            try {
-              await apiService.deleteAccount(password);
-              await logout();
-              Alert.alert('Account deleted', 'Your account has been removed.');
-            } catch (error) {
-              Alert.alert('Error', 'Could not delete account. Check your password and try again.');
-            }
-          },
-        },
-      ],
-      'secure-text'
-    );
+    setDeleteModalVisible(true);
+  };
+
+  const handleConfirmDeleteAccount = async (password: string) => {
+    await apiService.deleteAccount(password);
+    setDeleteModalVisible(false);
+    await logout();
+    Alert.alert('Account deleted', 'Your account has been removed.');
   };
 
   const handleLogout = async () => {
@@ -105,13 +91,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   };
 
   const handleSave = async () => {
+    if (!editedUser) return;
+    setSaving(true);
     try {
-      // TODO: Implement API call to update user profile
+      await apiService.updateProfile({
+        firstName: editedUser.firstName,
+        lastName: editedUser.lastName,
+        phone: editedUser.phone,
+        location: editedUser.location,
+        preferences: editedUser.preferences,
+      });
+      await refreshUser();
       setIsEditing(false);
       Alert.alert('Success', 'Profile updated successfully!');
     } catch (error) {
       console.error('Update error:', error);
       Alert.alert('Error', 'Failed to update profile. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -203,8 +200,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                 <TouchableOpacity
                   style={styles.saveButton}
                   onPress={handleSave}
+                  disabled={saving}
                 >
-                  <Text style={styles.saveButtonText}>Save</Text>
+                  <Text style={styles.saveButtonText}>{saving ? 'Saving…' : 'Save'}</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -382,6 +380,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           <View style={styles.bottomSpacing} />
         </ScrollView>
       </LinearGradient>
+      <DeleteAccountModal
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+        onConfirm={handleConfirmDeleteAccount}
+      />
     </ScreenWrapper>
   );
 };

@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: localshop-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_CONNECT_COUNTRY
+        value: CA
+      - key: STRIPE_CONNECT_REFRESH_URL
+        sync: false
+      - key: STRIPE_CONNECT_RETURN_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: ADMIN_WEB_URL
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false

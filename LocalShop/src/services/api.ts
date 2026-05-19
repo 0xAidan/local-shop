@@ -101,7 +101,9 @@ class ApiService {
     const headers = await this.getHeaders();
 
     try {
-      console.log(`🌐 Making API request to: ${url}`);
+      if (__DEV__) {
+        console.log(`🌐 Making API request to: ${url}`);
+      }
       
       const response = await fetch(url, {
         ...options,
@@ -111,16 +113,22 @@ class ApiService {
         },
       });
 
-      console.log(`📡 Response status: ${response.status}`);
+      if (__DEV__) {
+        console.log(`📡 Response status: ${response.status}`);
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        console.error(`❌ API Error ${response.status}:`, errorData);
+        if (__DEV__) {
+          console.error(`❌ API Error ${response.status}:`, errorData);
+        }
         throw new Error(errorData.message || `HTTP ${response.status}: API request failed`);
       }
 
       const data = await response.json();
-      console.log(`✅ API request successful: ${endpoint}`);
+      if (__DEV__) {
+        console.log(`✅ API request successful: ${endpoint}`);
+      }
       return data;
     } catch (error) {
       console.error('API request failed:', error);
@@ -499,6 +507,35 @@ class ApiService {
     data: { stripeEnabled: boolean; publishableKey: string | null };
   }> {
     return this.request('/payments/config');
+  }
+
+  async startConnectOnboarding(
+    shopId: string,
+    urls: { returnUrl: string; refreshUrl: string }
+  ): Promise<{ url: string; accountId: string }> {
+    const response = await this.request<{ url: string; accountId: string }>(
+      `/payments/connect/onboard/${shopId}`,
+      {
+        method: 'POST',
+        body: JSON.stringify(urls),
+      }
+    );
+    return response.data;
+  }
+
+  async getConnectStatus(shopId: string): Promise<{
+    stripeConnectAccountId?: string;
+    stripeConnectChargesEnabled?: boolean;
+    stripeConnectPayoutsEnabled?: boolean;
+    stripeConnectDetailsSubmitted?: boolean;
+  }> {
+    const response = await this.request<{
+      stripeConnectAccountId?: string;
+      stripeConnectChargesEnabled?: boolean;
+      stripeConnectPayoutsEnabled?: boolean;
+      stripeConnectDetailsSubmitted?: boolean;
+    }>(`/payments/connect/status/${shopId}`);
+    return response.data;
   }
 
   async deleteAccount(password: string): Promise<void> {

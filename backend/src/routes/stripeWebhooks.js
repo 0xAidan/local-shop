@@ -1,8 +1,18 @@
 const express = require('express');
 const Order = require('../models/Order');
-const { getStripe } = require('../services/stripe');
+const StripeWebhookEvent = require('../models/StripeWebhookEvent');
+const { getStripe, syncConnectAccountByStripeId } = require('../services/stripe');
+const { reserveInventoryForOrder } = require('../utils/orderInventory');
 
 const router = express.Router();
+
+const markInventoryForPaidOrder = async (order) => {
+  if (order.inventoryAdjusted) {
+    return;
+  }
+  await reserveInventoryForOrder(order.items);
+  order.inventoryAdjusted = true;
+};
 
 router.post('/', express.raw({ type: 'application/json' }), async (req, res) => {
   const stripe = getStripe();
@@ -23,6 +33,13 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
   }
 
   try {
+    const existing = await StripeWebhookEvent.findOne({ eventId: event.id });
+    if (existing) {
+      return res.json({ received: true, duplicate: true });
+    }
+
+    await StripeWebhookEvent.create({ eventId: event.id, type: event.type });
+
     switch (event.type) {
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object;
@@ -31,6 +48,8 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
 
         const order = await Order.findById(orderId);
         if (!order) break;
+
+        await markInventoryForPaidOrder(order);
 
         order.payment.status = 'paid';
         order.payment.transactionId = paymentIntent.id;
@@ -51,6 +70,13 @@ router.post('/', express.raw({ type: 'application/json' }), async (req, res) => 
 
         order.payment.status = 'failed';
         await order.save();
+        break;
+      }
+      case 'account.updated': {
+        const account = event.data.object;
+        if (account?.id) {
+          await syncConnectAccountByStripeId(account.id);
+        }
         break;
       }
       default:
