@@ -1,16 +1,12 @@
 import React from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, layout } from '../theme/colors';
 
 interface EmptyStateProps {
   title: string;
   message: string;
-  icon?: string;
+  iconName?: keyof typeof Ionicons.glyphMap;
   actionText?: string;
   onAction?: () => void;
 }
@@ -18,87 +14,64 @@ interface EmptyStateProps {
 export const EmptyState: React.FC<EmptyStateProps> = ({
   title,
   message,
-  icon = '🔍',
+  iconName = 'search-outline',
   actionText,
   onAction,
-}) => {
-  return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.icon}>{icon}</Text>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.message}>{message}</Text>
-        
-        {actionText && onAction && (
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={onAction}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#4A90E2', '#357ABD']}
-              style={styles.actionButtonGradient}
-            >
-              <Text style={styles.actionButtonText}>{actionText}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
-      </View>
+}) => (
+  <View style={styles.container}>
+    <View style={styles.iconWrap}>
+      <Ionicons name={iconName} size={32} color={colors.textMuted} />
     </View>
-  );
-};
+    <Text style={styles.title}>{title}</Text>
+    <Text style={styles.message}>{message}</Text>
+    {actionText && onAction ? (
+      <TouchableOpacity style={styles.button} onPress={onAction} activeOpacity={0.8}>
+        <Text style={styles.buttonText}>{actionText}</Text>
+      </TouchableOpacity>
+    ) : null}
+  </View>
+);
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 48,
+  },
+  iconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  content: {
-    alignItems: 'center',
-    maxWidth: 300,
-  },
-  icon: {
-    fontSize: 64,
-    marginBottom: 24,
-    opacity: 0.8,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 8,
     textAlign: 'center',
-    letterSpacing: -0.5,
   },
   message: {
-    fontSize: 16,
-    color: '#CCCCCC',
+    fontSize: 15,
+    color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 32,
+    lineHeight: 22,
+    marginBottom: 24,
   },
-  actionButton: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+  button: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: layout.cardRadius,
+    backgroundColor: colors.primary,
   },
-  actionButtonGradient: {
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    alignItems: 'center',
+  buttonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.background,
   },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-}); 
+});

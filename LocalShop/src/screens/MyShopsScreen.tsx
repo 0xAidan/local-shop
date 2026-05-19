@@ -15,7 +15,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import { Shop } from '../types';
 import { apiService } from '../services/api';
-import { RoleSwitcher } from '../components/RoleSwitcher';
 import { ResponsiveButton } from '../components/ResponsiveButton';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -215,9 +214,6 @@ export const MyShopsScreen: React.FC<MyShopsScreenProps> = ({ navigation }) => {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>My Shops</Text>
           <View style={styles.headerActions}>
-            {/* Role Switcher - Development Mode */}
-            {/* TODO: Remove this when authentication is re-enabled */}
-            <RoleSwitcher />
             <TouchableOpacity
               style={styles.createButton}
               onPress={handleCreateShop}

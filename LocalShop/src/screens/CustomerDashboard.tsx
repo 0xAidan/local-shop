@@ -131,9 +131,17 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
     </View>
   );
 
-  const QuickAction = ({ icon, title, onPress }: { icon: string; title: string; onPress: () => void }) => (
+  const QuickAction = ({
+    iconName,
+    title,
+    onPress,
+  }: {
+    iconName: keyof typeof Ionicons.glyphMap;
+    title: string;
+    onPress: () => void;
+  }) => (
     <TouchableOpacity style={styles.quickAction} onPress={onPress}>
-      <Text style={styles.quickActionIcon}>{icon}</Text>
+      <Ionicons name={iconName} size={22} color="#5B9FD4" />
       <Text style={styles.quickActionTitle}>{title}</Text>
     </TouchableOpacity>
   );
@@ -170,22 +178,22 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             <View style={styles.quickActions}>
               <QuickAction
-                icon="🔍"
+                iconName="search-outline"
                 title="Find Shops"
                 onPress={() => navigation.navigate('Home')}
               />
               <QuickAction
-                icon="📱"
+                iconName="qr-code-outline"
                 title="Scan QR"
                 onPress={() => Alert.alert('QR Scanner', 'QR scanner coming soon!')}
               />
               <QuickAction
-                icon="📞"
+                iconName="help-circle-outline"
                 title="Support"
                 onPress={() => Alert.alert('Support', 'Contact support coming soon!')}
               />
               <QuickAction
-                icon="⭐"
+                iconName="star-outline"
                 title="Rate App"
                 onPress={() => Alert.alert('Rate App', 'App rating coming soon!')}
               />

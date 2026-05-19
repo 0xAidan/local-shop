@@ -1,14 +1,6 @@
 import React from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  ActivityIndicator,
-  Dimensions,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+import { StyleSheet, View, Text, ActivityIndicator } from 'react-native';
+import { colors } from '../theme/colors';
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -18,71 +10,42 @@ interface LoadingSpinnerProps {
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
-  message = 'Loading...',
+  message = 'Loading',
   size = 'large',
-  color = '#4A90E2',
+  color = colors.primary,
   fullScreen = false,
 }) => {
+  const content = (
+    <>
+      <ActivityIndicator size={size} color={color} />
+      {message ? <Text style={styles.message}>{message}</Text> : null}
+    </>
+  );
+
   if (fullScreen) {
-    return (
-      <View style={styles.fullScreenContainer}>
-        <LinearGradient
-          colors={['#000000', '#1a1a1a']}
-          style={styles.fullScreenGradient}
-        >
-          <View style={styles.fullScreenContent}>
-            <ActivityIndicator size={size} color={color} />
-            <Text style={styles.fullScreenMessage}>{message}</Text>
-          </View>
-        </LinearGradient>
-      </View>
-    );
+    return <View style={styles.fullScreen}>{content}</View>;
   }
 
-  return (
-    <View style={styles.container}>
-      <ActivityIndicator size={size} color={color} />
-      {message && <Text style={styles.message}>{message}</Text>}
-    </View>
-  );
+  return <View style={styles.inline}>{content}</View>;
 };
 
 const styles = StyleSheet.create({
-  container: {
+  fullScreen: {
+    flex: 1,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  inline: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
   message: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: colors.textSecondary,
+    fontSize: 15,
     marginTop: 12,
-    fontWeight: '500',
     textAlign: 'center',
   },
-  fullScreenContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1000,
-  },
-  fullScreenGradient: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullScreenContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fullScreenMessage: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    marginTop: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-    letterSpacing: -0.3,
-  },
-}); 
+});

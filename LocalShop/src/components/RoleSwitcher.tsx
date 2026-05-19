@@ -1,71 +1,72 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
-import { colors } from '../theme/colors';
+import { colors, layout } from '../theme/colors';
 
-/** Dev-only floating control — kept off the header so it does not overlap profile UI. */
 export const RoleSwitcher: React.FC = () => {
-  const insets = useSafeAreaInsets();
   const { currentViewMode, switchViewMode } = useAuth();
 
   if (!__DEV__) {
     return null;
   }
 
-  const handleSwitchRole = () => {
-    const newMode = currentViewMode === 'customer' ? 'shop_owner' : 'customer';
-    switchViewMode(newMode);
-  };
+  const nextMode = currentViewMode === 'customer' ? 'shop_owner' : 'customer';
 
   return (
-    <TouchableOpacity
-      style={[styles.container, { bottom: insets.bottom + 100 }]}
-      onPress={handleSwitchRole}
-      activeOpacity={0.9}
-      accessibilityRole="button"
-      accessibilityLabel="Switch dev role"
-    >
-      <View style={styles.content}>
+    <View style={styles.wrap}>
+      <Text style={styles.label}>Developer</Text>
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => switchViewMode(nextMode)}
+        activeOpacity={0.8}
+      >
         <Ionicons
-          name={currentViewMode === 'customer' ? 'person' : 'business'}
-          size={14}
-          color={colors.textPrimary}
+          name={currentViewMode === 'customer' ? 'person-outline' : 'business-outline'}
+          size={18}
+          color={colors.textSecondary}
         />
-        <Text style={styles.text}>
-          {currentViewMode === 'customer' ? 'Customer' : 'Owner'}
+        <Text style={styles.value}>
+          Viewing as {currentViewMode === 'customer' ? 'customer' : 'shop owner'}
         </Text>
-      </View>
-    </TouchableOpacity>
+        <Text style={styles.switch}>Switch</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    left: 16,
-    zIndex: 50,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 8,
+  wrap: {
+    marginTop: 8,
+    marginBottom: layout.sectionGap,
+    paddingHorizontal: layout.screenPadding,
   },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  text: {
-    color: colors.textPrimary,
+  label: {
     fontSize: 12,
     fontWeight: '600',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    backgroundColor: colors.surface,
+    borderRadius: layout.cardRadius,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  value: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.textPrimary,
+  },
+  switch: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
 });

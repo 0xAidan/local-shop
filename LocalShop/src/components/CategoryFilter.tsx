@@ -1,21 +1,10 @@
 import React from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
-import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
-import { spacing } from '../utils/responsive';
+import { StyleSheet, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { colors, layout } from '../theme/colors';
 
 export interface Category {
   id: string;
   name: string;
-  iconType: 'Ionicons' | 'MaterialIcons' | 'MaterialCommunityIcons';
-  iconName: string;
-  color: string;
 }
 
 interface CategoryFilterProps {
@@ -25,109 +14,69 @@ interface CategoryFilterProps {
 }
 
 const defaultCategories: Category[] = [
-  { id: 'all', name: 'All', iconType: 'Ionicons', iconName: 'storefront', color: colors.primary },
-  { id: 'farmers-market', name: 'Farmers Market', iconType: 'MaterialCommunityIcons', iconName: 'carrot', color: '#7EC8A3' },
-  { id: 'bakery', name: 'Bakery', iconType: 'MaterialCommunityIcons', iconName: 'baguette', color: '#E8B86D' },
-  { id: 'coffee', name: 'Coffee', iconType: 'Ionicons', iconName: 'cafe', color: '#C4A484' },
-  { id: 'specialty-food', name: 'Specialty', iconType: 'Ionicons', iconName: 'nutrition', color: '#B88FD4' },
+  { id: 'all', name: 'All' },
+  { id: 'farmers-market', name: 'Farmers market' },
+  { id: 'bakery', name: 'Bakery' },
+  { id: 'coffee', name: 'Coffee' },
+  { id: 'specialty-food', name: 'Specialty' },
 ];
-
-const renderIcon = (category: Category, size: number, color: string) => {
-  switch (category.iconType) {
-    case 'Ionicons':
-      return <Ionicons name={category.iconName as keyof typeof Ionicons.glyphMap} size={size} color={color} />;
-    case 'MaterialIcons':
-      return <MaterialIcons name={category.iconName as keyof typeof MaterialIcons.glyphMap} size={size} color={color} />;
-    case 'MaterialCommunityIcons':
-      return (
-        <MaterialCommunityIcons
-          name={category.iconName as keyof typeof MaterialCommunityIcons.glyphMap}
-          size={size}
-          color={color}
-        />
-      );
-    default:
-      return <Ionicons name="storefront" size={size} color={color} />;
-  }
-};
 
 export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   categories = defaultCategories,
   selectedCategory,
   onCategorySelect,
-}) => {
-  return (
-    <View style={styles.container}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {categories.map((category) => {
-          const isSelected =
-            category.id === 'all' ? selectedCategory === null : selectedCategory === category.id;
+}) => (
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    contentContainerStyle={styles.scroll}
+    style={styles.container}
+  >
+    {categories.map((category) => {
+      const isSelected =
+        category.id === 'all' ? selectedCategory === null : selectedCategory === category.id;
 
-          return (
-            <TouchableOpacity
-              key={category.id}
-              style={[styles.chip, isSelected && styles.chipSelected]}
-              onPress={() => onCategorySelect(category.id === 'all' ? null : category.id)}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isSelected }}
-            >
-              <View style={[styles.iconWrap, isSelected && { backgroundColor: `${category.color}33` }]}>
-                {renderIcon(category, 18, isSelected ? category.color : colors.textSecondary)}
-              </View>
-              <Text style={[styles.chipLabel, isSelected && styles.chipLabelSelected]} numberOfLines={1}>
-                {category.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-};
+      return (
+        <TouchableOpacity
+          key={category.id}
+          style={[styles.chip, isSelected && styles.chipSelected]}
+          onPress={() => onCategorySelect(category.id === 'all' ? null : category.id)}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.label, isSelected && styles.labelSelected]}>{category.name}</Text>
+        </TouchableOpacity>
+      );
+    })}
+  </ScrollView>
+);
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: spacing.lg,
+    flexGrow: 0,
   },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-    gap: 10,
+  scroll: {
+    paddingHorizontal: layout.screenPadding,
+    gap: 8,
+    paddingVertical: 4,
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 999,
+    paddingVertical: 8,
+    borderRadius: layout.chipRadius,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    maxWidth: 180,
   },
   chipSelected: {
     backgroundColor: colors.surfaceElevated,
     borderColor: colors.borderStrong,
   },
-  iconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  chipLabel: {
-    fontSize: 13,
+  label: {
+    fontSize: 14,
     fontWeight: '500',
     color: colors.textSecondary,
   },
-  chipLabelSelected: {
+  labelSelected: {
     color: colors.textPrimary,
     fontWeight: '600',
   },
