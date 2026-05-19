@@ -68,8 +68,8 @@ STRIPE_SKIP_PAYMENTS=true
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` |
 | `CORS_ORIGINS` | `https://admin.yourdomain.com` |
 | `ADMIN_WEB_URL` | `https://admin.yourdomain.com` |
-| `STRIPE_CONNECT_REFRESH_URL` | `https://admin.yourdomain.com/connect/refresh` |
-| `STRIPE_CONNECT_RETURN_URL` | `https://admin.yourdomain.com/connect/return` |
+| `STRIPE_CONNECT_REFRESH_URL` | `localshop://connect/refresh` (mobile deep link) |
+| `STRIPE_CONNECT_RETURN_URL` | `localshop://connect/return` (mobile deep link) |
 | `CLOUDINARY_*` | From Cloudinary dashboard |
 | `GOOGLE_MAPS_API_KEY` | From Google Cloud |
 
@@ -100,7 +100,8 @@ npx vercel --prod
 Set the Vercel project **root directory** to `admin` (not repo root). After deploy, set on Render:
 - `ADMIN_WEB_URL` → your admin Vercel URL
 - `CORS_ORIGINS` → same admin URL (comma-separate if you add more origins)
-- `STRIPE_CONNECT_REFRESH_URL` / `STRIPE_CONNECT_RETURN_URL` → admin connect routes if used
+- `STRIPE_CONNECT_REFRESH_URL` → `localshop://connect/refresh`
+- `STRIPE_CONNECT_RETURN_URL` → `localshop://connect/return`
 
 ### 5. Create admin user on staging DB
 
@@ -142,8 +143,10 @@ On Render, set `STRIPE_SKIP_PAYMENTS=false` (or remove the variable).
 ```bash
 cd LocalShop
 npx expo login
-eas init                    # replaces YOUR_EAS_PROJECT_ID in app.json
+eas init                    # links Expo project (see app.json extra.eas.projectId)
 ```
+
+**Linked project:** `@aidannuge/localshop` on [expo.dev](https://expo.dev/accounts/aidannuge/projects/localshop).
 
 Set EAS secrets (preferred over committing keys):
 
@@ -236,8 +239,8 @@ STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_CONNECT_COUNTRY=CA
-STRIPE_CONNECT_REFRESH_URL=https://admin.yourdomain.com/connect/refresh
-STRIPE_CONNECT_RETURN_URL=https://admin.yourdomain.com/connect/return
+STRIPE_CONNECT_REFRESH_URL=localshop://connect/refresh
+STRIPE_CONNECT_RETURN_URL=localshop://connect/return
 STRIPE_SKIP_PAYMENTS=false
 CLOUDINARY_CLOUD_NAME=...
 CLOUDINARY_API_KEY=...
