@@ -10,6 +10,8 @@ import {
   Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../theme/colors';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -92,7 +94,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       {/* Search Input */}
       <View style={styles.searchContainer}>
         <View style={styles.searchIconContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Ionicons name="search" size={20} color={colors.textMuted} />
         </View>
         <TextInput
           style={styles.searchInput}
@@ -266,26 +268,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 20,
-    marginVertical: 16,
+    marginHorizontal: 0,
+    marginVertical: 0,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 2,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    borderColor: colors.border,
   },
   searchIconContainer: {
     marginRight: 12,

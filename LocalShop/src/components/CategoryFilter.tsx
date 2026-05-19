@@ -5,12 +5,10 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-
-const { width: screenWidth } = Dimensions.get('window');
+import { colors } from '../theme/colors';
+import { spacing } from '../utils/responsive';
 
 export interface Category {
   id: string;
@@ -24,32 +22,30 @@ interface CategoryFilterProps {
   categories?: Category[];
   selectedCategory: string | null;
   onCategorySelect: (categoryId: string | null) => void;
-  compact?: boolean;
-  onSearchPress?: () => void;
 }
 
 const defaultCategories: Category[] = [
-  { id: 'all', name: 'All', iconType: 'Ionicons', iconName: 'storefront', color: '#4A90E2' },
-  { id: 'farmers-market', name: 'Farmers Market', iconType: 'MaterialCommunityIcons', iconName: 'carrot', color: '#2ECC71' },
-  { id: 'bakery', name: 'Bakery', iconType: 'MaterialCommunityIcons', iconName: 'baguette', color: '#F39C12' },
-  { id: 'coffee', name: 'Coffee & Tea', iconType: 'Ionicons', iconName: 'cafe', color: '#8B4513' },
-  { id: 'arts-crafts', name: 'Arts & Crafts', iconType: 'MaterialIcons', iconName: 'palette', color: '#9B59B6' },
-  { id: 'clothing', name: 'Clothing', iconType: 'MaterialCommunityIcons', iconName: 'tshirt-crew', color: '#E91E63' },
-  { id: 'jewelry', name: 'Jewelry', iconType: 'MaterialCommunityIcons', iconName: 'diamond-stone', color: '#FFD700' },
-  { id: 'home-decor', name: 'Home & Decor', iconType: 'MaterialIcons', iconName: 'home', color: '#795548' },
-  { id: 'services', name: 'Services', iconType: 'MaterialIcons', iconName: 'handyman', color: '#607D8B' },
+  { id: 'all', name: 'All', iconType: 'Ionicons', iconName: 'storefront', color: colors.primary },
+  { id: 'farmers-market', name: 'Farmers Market', iconType: 'MaterialCommunityIcons', iconName: 'carrot', color: '#7EC8A3' },
+  { id: 'bakery', name: 'Bakery', iconType: 'MaterialCommunityIcons', iconName: 'baguette', color: '#E8B86D' },
+  { id: 'coffee', name: 'Coffee', iconType: 'Ionicons', iconName: 'cafe', color: '#C4A484' },
+  { id: 'specialty-food', name: 'Specialty', iconType: 'Ionicons', iconName: 'nutrition', color: '#B88FD4' },
 ];
 
-const renderIcon = (category: Category, size: number = 20, color: string = '#FFFFFF') => {
-  const { iconType, iconName } = category;
-  
-  switch (iconType) {
+const renderIcon = (category: Category, size: number, color: string) => {
+  switch (category.iconType) {
     case 'Ionicons':
-      return <Ionicons name={iconName as any} size={size} color={color} />;
+      return <Ionicons name={category.iconName as keyof typeof Ionicons.glyphMap} size={size} color={color} />;
     case 'MaterialIcons':
-      return <MaterialIcons name={iconName as any} size={size} color={color} />;
+      return <MaterialIcons name={category.iconName as keyof typeof MaterialIcons.glyphMap} size={size} color={color} />;
     case 'MaterialCommunityIcons':
-      return <MaterialCommunityIcons name={iconName as any} size={size} color={color} />;
+      return (
+        <MaterialCommunityIcons
+          name={category.iconName as keyof typeof MaterialCommunityIcons.glyphMap}
+          size={size}
+          color={color}
+        />
+      );
     default:
       return <Ionicons name="storefront" size={size} color={color} />;
   }
@@ -59,62 +55,33 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
   categories = defaultCategories,
   selectedCategory,
   onCategorySelect,
-  compact = false,
-  onSearchPress,
 }) => {
   return (
-    <View style={[styles.container, compact && styles.containerCompact]}>
+    <View style={styles.container}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          compact && styles.scrollContentCompact
-        ]}
-        decelerationRate="fast"
-        snapToInterval={100}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* Search button when compact */}
-        {compact && onSearchPress && (
-          <TouchableOpacity
-            style={styles.searchButton}
-            onPress={onSearchPress}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="search" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-        )}
-        
         {categories.map((category) => {
-          const isSelected = selectedCategory === category.id;
-          
+          const isSelected =
+            category.id === 'all' ? selectedCategory === null : selectedCategory === category.id;
+
           return (
             <TouchableOpacity
               key={category.id}
-              style={styles.categoryContainer}
+              style={[styles.chip, isSelected && styles.chipSelected]}
               onPress={() => onCategorySelect(category.id === 'all' ? null : category.id)}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
             >
-              {isSelected ? (
-                <LinearGradient
-                  colors={[category.color, category.color + 'CC']}
-                  style={[styles.categoryButton, compact && styles.categoryButtonCompact]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <View style={[styles.categoryIcon, compact && styles.categoryIconCompact]}>
-                    {renderIcon(category, compact ? 24 : 22, '#FFFFFF')}
-                  </View>
-                  {!compact && <Text style={styles.categoryNameSelected}>{category.name}</Text>}
-                </LinearGradient>
-              ) : (
-                <View style={[styles.categoryButtonInactive, compact && styles.categoryButtonCompact]}>
-                  <View style={[styles.categoryIcon, compact && styles.categoryIconCompact]}>
-                    {renderIcon(category, compact ? 24 : 22, 'rgba(255, 255, 255, 0.8)')}
-                  </View>
-                  {!compact && <Text style={styles.categoryName}>{category.name}</Text>}
-                </View>
-              )}
+              <View style={[styles.iconWrap, isSelected && { backgroundColor: `${category.color}33` }]}>
+                {renderIcon(category, 18, isSelected ? category.color : colors.textSecondary)}
+              </View>
+              <Text style={[styles.chipLabel, isSelected && styles.chipLabelSelected]} numberOfLines={1}>
+                {category.name}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -125,97 +92,43 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
-  },
-  containerCompact: {
-    marginBottom: 0,
-    marginHorizontal: -20, // Extend beyond parent padding
+    marginBottom: spacing.lg,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    gap: 12,
+    paddingHorizontal: spacing.lg,
+    gap: 10,
   },
-  scrollContentCompact: {
-    justifyContent: 'space-around',
-    flexGrow: 1,
-    paddingHorizontal: 0,
-  },
-  searchButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
+  chip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  categoryContainer: {
-    minWidth: 80,
-  },
-  categoryButtonCompact: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    minWidth: 60,
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  categoryButtonInactiveCompact: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    minWidth: 60,
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  categoryButton: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  categoryButtonInactive: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: colors.border,
+    maxWidth: 180,
   },
-  categoryIcon: {
-    marginBottom: 6,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+  chipSelected: {
+    backgroundColor: colors.surfaceElevated,
+    borderColor: colors.borderStrong,
   },
-  categoryIconCompact: {
-    marginBottom: 0,
-    height: 28,
+  iconWrap: {
     width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
   },
-  categoryName: {
-    fontSize: 12,
+  chipLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.textSecondary,
+  },
+  chipLabelSelected: {
+    color: colors.textPrimary,
     fontWeight: '600',
-    color: '#FFFFFF',
-    textAlign: 'center',
-  },
-  categoryNameSelected: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textAlign: 'center',
   },
 });

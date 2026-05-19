@@ -13,10 +13,12 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ShopCarousel } from '../components/ShopCarousel';
-import { DynamicHeader } from '../components/DynamicHeader';
-import { CategoryFilter, Category } from '../components/CategoryFilter';
+import { DynamicHeader, HOME_HEADER_HEIGHT } from '../components/DynamicHeader';
+import { CategoryFilter } from '../components/CategoryFilter';
+import { RoleSwitcher } from '../components/RoleSwitcher';
+import { colors } from '../theme/colors';
 import { SearchBar, SearchFilters } from '../components/SearchBar';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
@@ -30,6 +32,9 @@ interface HomeScreenProps {
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
+  const contentTopPadding = HOME_HEADER_HEIGHT + insets.top + 8;
+
   const [shops, setShops] = useState<Shop[]>([]);
   const [filteredShops, setFilteredShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
@@ -245,15 +250,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           user={user}
           userLocation={userLocation}
           searchQuery={searchQuery}
-          selectedCategory={selectedCategory}
           activeFilters={activeFilters}
           onSearch={handleSearch}
-          onCategorySelect={handleCategorySelect}
           onFilterChange={handleFilterChange}
           onProfilePress={handleProfilePress}
           onLocationPress={handleLocationPress}
           scrollY={scrollY}
         />
+
+        <RoleSwitcher />
 
         {/* Content */}
         <Animated.ScrollView 
@@ -272,8 +277,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               colors={["#4A90E2"]}
             />
           }
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: contentTopPadding }]}
         >
+          {!showSearchResults && (
+            <CategoryFilter
+              selectedCategory={selectedCategory}
+              onCategorySelect={handleCategorySelect}
+            />
+          )}
+
           {showSearchResults ? (
             // Show search results
             <View style={styles.searchResultsContainer}>
@@ -451,11 +463,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
-    paddingTop: 320, // Account for dynamic header height + extra space for search bar
   },
   scrollContent: {
     paddingBottom: 100, // Account for bottom navigation
@@ -466,14 +477,14 @@ const styles = StyleSheet.create({
   searchResultsTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
     marginBottom: 16,
     paddingHorizontal: 20,
     letterSpacing: -0.5,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: colors.background,
     paddingTop: Platform.OS === 'ios' ? 44 : 20,
   },
   modalHeader: {
@@ -488,13 +499,13 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
   modalCloseButton: {
     padding: 8,
   },
   modalCloseText: {
     fontSize: 20,
-    color: '#FFFFFF',
+    color: colors.textPrimary,
   },
 }); 

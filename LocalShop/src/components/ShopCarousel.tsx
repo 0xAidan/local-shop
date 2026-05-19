@@ -8,12 +8,15 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { Shop } from '../types';
+import { ShopImage } from './ShopImage';
+import { colors } from '../theme/colors';
+import { spacing } from '../utils/responsive';
 
 const { width: screenWidth } = Dimensions.get('window');
-const CARD_WIDTH = screenWidth * 0.75;
-const CARD_SPACING = 16;
+const CARD_WIDTH = screenWidth * 0.72;
+const CARD_SPACING = 14;
 
 interface ShopCarouselProps {
   title: string;
@@ -39,46 +42,38 @@ export const ShopCarousel: React.FC<ShopCarouselProps> = ({
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
         {showViewAll && onViewAllPress && (
-          <TouchableOpacity onPress={onViewAllPress} style={styles.viewAllButton}>
-            <Text style={styles.viewAllText}>View All</Text>
+          <TouchableOpacity
+            onPress={onViewAllPress}
+            style={styles.viewAllButton}
+            accessibilityRole="button"
+            accessibilityLabel={`View all ${title}`}
+          >
+            <Text style={styles.viewAllText}>View all</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
           </TouchableOpacity>
         )}
       </View>
-      
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        decelerationRate={Platform.OS === 'ios' ? 0 : 0.9}
+        decelerationRate={Platform.OS === 'ios' ? 0.92 : 0.9}
         snapToInterval={CARD_WIDTH + CARD_SPACING}
         snapToAlignment="start"
       >
         {shops.map((shop, index) => (
           <TouchableOpacity
-            key={shop.id || shop._id || index}
+            key={shop.id || shop._id || `shop-${index}`}
             style={styles.cardContainer}
             onPress={() => onShopPress(shop)}
-            activeOpacity={0.8}
+            activeOpacity={0.92}
+            accessibilityRole="button"
+            accessibilityLabel={`${shop.name}, ${shop.category}`}
           >
-            <LinearGradient
-              colors={['#2A2A2A', '#1A1A1A']}
-              style={styles.card}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              {/* Shop Image Placeholder */}
-              <View style={styles.imageContainer}>
-                <LinearGradient
-                  colors={['#4A90E2', '#357ABD']}
-                  style={styles.imagePlaceholder}
-                >
-                  <Text style={styles.imageText}>
-                    {shop.name.charAt(0).toUpperCase()}
-                  </Text>
-                </LinearGradient>
-              </View>
+            <View style={styles.card}>
+              <ShopImage shop={shop} height={128} />
 
-              {/* Shop Info */}
               <View style={styles.shopInfo}>
                 <Text style={styles.shopName} numberOfLines={1}>
                   {shop.name}
@@ -86,24 +81,22 @@ export const ShopCarousel: React.FC<ShopCarouselProps> = ({
                 <Text style={styles.shopCategory} numberOfLines={1}>
                   {shop.category}
                 </Text>
-                
+
                 <View style={styles.shopMeta}>
                   <View style={styles.ratingContainer}>
-                    <Text style={styles.ratingStar}>★</Text>
+                    <Ionicons name="star" size={14} color={colors.warning} />
                     <Text style={styles.ratingText}>
-                      {shop.rating?.average?.toFixed(1) || 'N/A'}
+                      {shop.rating?.average?.toFixed(1) ?? 'New'}
                     </Text>
-                    <Text style={styles.ratingCount}>
-                      ({shop.rating?.count || 0})
-                    </Text>
+                    {shop.rating?.count != null && shop.rating.count > 0 && (
+                      <Text style={styles.ratingCount}>({shop.rating.count})</Text>
+                    )}
                   </View>
-                  
-                  {shop.distance && (
+                  {shop.distance ? (
                     <Text style={styles.distance}>{shop.distance}</Text>
-                  )}
+                  ) : null}
                 </View>
 
-                {/* Features/Tags */}
                 {shop.features && shop.features.length > 0 && (
                   <View style={styles.featuresContainer}>
                     {shop.features.slice(0, 2).map((feature, idx) => (
@@ -114,7 +107,7 @@ export const ShopCarousel: React.FC<ShopCarouselProps> = ({
                   </View>
                 )}
               </View>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -124,112 +117,91 @@ export const ShopCarousel: React.FC<ShopCarouselProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 32,
+    marginBottom: spacing['2xl'],
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 20,
+    marginBottom: spacing.base,
+    paddingHorizontal: spacing.lg,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
   },
   viewAllButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: 4,
+    paddingLeft: 8,
   },
   viewAllText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4A90E2',
+    color: colors.primary,
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 4,
   },
   cardContainer: {
     width: CARD_WIDTH,
     marginRight: CARD_SPACING,
   },
   card: {
-    borderRadius: 20,
-    padding: 20,
-    minHeight: 200,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  imageContainer: {
-    marginBottom: 16,
-  },
-  imagePlaceholder: {
-    width: '100%',
-    height: 120,
+    backgroundColor: colors.surface,
     borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imageText: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    opacity: 0.8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
   },
   shopInfo: {
-    flex: 1,
+    padding: spacing.base,
   },
   shopName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
-    letterSpacing: -0.3,
+    color: colors.textPrimary,
+    marginBottom: 2,
+    letterSpacing: -0.2,
   },
   shopCategory: {
-    fontSize: 14,
-    color: '#CCCCCC',
-    marginBottom: 12,
-    fontWeight: '500',
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
   },
   shopMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.sm,
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  ratingStar: {
-    fontSize: 16,
-    color: '#FFD700',
-    marginRight: 4,
+    gap: 4,
   },
   ratingText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#FFFFFF',
-    marginRight: 4,
+    color: colors.textPrimary,
   },
   ratingCount: {
     fontSize: 12,
-    color: '#999999',
+    color: colors.textMuted,
   },
   distance: {
     fontSize: 12,
-    color: '#999999',
+    color: colors.textMuted,
     fontWeight: '500',
   },
   featuresContainer: {
@@ -238,16 +210,16 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   featureTag: {
-    backgroundColor: 'rgba(74, 144, 226, 0.2)',
+    backgroundColor: 'rgba(91, 159, 212, 0.12)',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(74, 144, 226, 0.3)',
+    borderColor: 'rgba(91, 159, 212, 0.22)',
   },
   featureText: {
-    fontSize: 10,
-    color: '#4A90E2',
+    fontSize: 11,
+    color: colors.primary,
     fontWeight: '600',
   },
-}); 
+});
