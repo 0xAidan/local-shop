@@ -9,8 +9,8 @@ import {
   ProductFormData 
 } from '../types';
 
-// Use mock API for testing (set to false to use real backend)
-const USE_MOCK_API = false;
+const USE_MOCK_API = process.env.EXPO_PUBLIC_USE_MOCK_API === 'true';
+const ALLOW_MOCK_FALLBACK = process.env.EXPO_PUBLIC_ALLOW_MOCK_FALLBACK === 'true';
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -36,8 +36,11 @@ class ApiService {
 
   // Enable fallback to mock API if real API fails
   private enableMockFallback() {
+    if (!ALLOW_MOCK_FALLBACK) {
+      return;
+    }
     if (!this.useMockAsFallback) {
-      console.log('⚠️ Real API failed, switching to mock API as fallback');
+      console.warn('Real API failed; using mock API fallback');
       this.useMockAsFallback = true;
     }
   }

@@ -1,134 +1,108 @@
 # LocalShop — Store readiness setup
 
-This guide lists what is implemented in code and **what you must do manually** (accounts, keys, App Store).
+## Implemented in code (current branch)
 
-## What was implemented (code)
-
-- **Backend:** Real order pricing, pending payments, Stripe PaymentIntent + webhooks, Connect onboarding routes, admin API, rate limiting, CORS env, notification fix, shop ownership fix
-- **Mobile:** Auth re-enabled, env-based API URL, real products/orders/shops (no mocks), checkout → payment intent, account deletion, legal links, EAS/app store config files
-- **Admin:** New Next.js app at `admin/` (platform dashboard)
+- **Backend:** Server-side order pricing, pending payments, Stripe PaymentIntent + webhooks, Connect onboarding, admin API, rate limiting, CORS, notification/shop fixes
+- **Mobile:** Real auth, env API URL, real products/orders/shops, Stripe Payment Sheet (dev builds), order confirmation screen, account deletion, legal links, EAS config, rebuilt home UI
+- **Admin:** Next.js app at `admin/`
+- **CI:** GitHub Actions (backend tests + admin build)
+- **Legal:** Starter pages in `legal/privacy.html` and `legal/terms.html` (host these and set URLs in `.env`)
+- **Maestro:** Starter flow in `maestro/flows/smoke.yaml`
 
 ## Your step-in checklist (required)
 
-### 1. Accounts to create (one-time)
+### 1. Accounts (one-time)
 
-| Service | Why | Link |
-|---------|-----|------|
-| **Apple Developer** | iOS App Store + TestFlight | https://developer.apple.com |
-| **Google Play Console** | Android (after iOS) | https://play.google.com/console |
-| **Expo** | Mobile builds (EAS) | https://expo.dev |
-| **MongoDB Atlas** | Production database | https://www.mongodb.com/atlas |
-| **Railway or Render** | Host Node API | https://railway.app or https://render.com |
-| **Stripe** | Payments + Connect for shops | https://dashboard.stripe.com |
-| **Vercel** | Host `admin/` app | https://vercel.com |
-| **Cloudinary** | Images (if not already) | https://cloudinary.com |
+| Service | Why |
+|---------|-----|
+| [Apple Developer](https://developer.apple.com) | iOS App Store + TestFlight |
+| [Google Play Console](https://play.google.com/console) | Android |
+| [Expo](https://expo.dev) | EAS builds |
+| [MongoDB Atlas](https://www.mongodb.com/atlas) | Production database |
+| [Railway](https://railway.app) or [Render](https://render.com) | Host API |
+| [Stripe](https://dashboard.stripe.com) | Payments + Connect |
+| [Vercel](https://vercel.com) | Host `admin/` + legal pages |
 
-### 2. Backend environment
-
-Copy and fill in:
+### 2. Backend `.env`
 
 ```bash
 cp backend/env.example backend/.env
 ```
 
-Minimum for local dev:
+Local dev minimum: `MONGODB_URI`, `JWT_SECRET`, `STRIPE_SKIP_PAYMENTS=true`
 
-- `MONGODB_URI`
-- `JWT_SECRET`
-- `STRIPE_SKIP_PAYMENTS=true` (until Stripe keys are ready)
-
-For production add:
-
-- `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
-- `CORS_ORIGINS`, `ADMIN_WEB_URL`
-- Strong `JWT_SECRET`
+Production: add `STRIPE_*`, `CORS_ORIGINS`, `ADMIN_WEB_URL`, strong `JWT_SECRET`
 
 Create admin user:
 
 ```bash
-cd backend
-node scripts/create-admin.js you@email.com YourSecurePassword
+cd backend && node scripts/create-admin.js you@email.com YourSecurePassword
 ```
 
-### 3. Stripe (when ready for real payments)
-
-1. Enable **Connect** in Stripe Dashboard  
-2. Add webhook endpoint: `https://YOUR-API-DOMAIN/api/webhooks/stripe`  
-   Events: `payment_intent.succeeded`, `payment_intent.payment_failed`  
-3. Set `STRIPE_WEBHOOK_SECRET` in backend `.env`  
-4. Remove or set `STRIPE_SKIP_PAYMENTS=false` in production  
-
-### 4. Mobile app environment
+### 3. Mobile `.env`
 
 ```bash
 cp LocalShop/.env.example LocalShop/.env
 ```
 
-- Use your computer’s LAN IP for `EXPO_PUBLIC_API_URL` when testing on a phone, e.g. `http://192.168.1.10:3001/api`
-- Use `https://your-api.railway.app/api` in production builds
+- Phone testing: `EXPO_PUBLIC_API_URL=http://YOUR_MAC_IP:3001/api`
+- Production build: `https://your-api.example.com/api`
+- Host `legal/*.html` and set `EXPO_PUBLIC_PRIVACY_URL` / `EXPO_PUBLIC_TERMS_URL`
 
-### 5. Expo / iOS build (you must run these)
+### 4. Payments
+
+| Mode | What you need |
+|------|----------------|
+| **Expo Go (simulator)** | `STRIPE_SKIP_PAYMENTS=true` on backend — orders auto-complete |
+| **Real card testing** | EAS development build + Stripe test keys + Payment Sheet |
 
 ```bash
 cd LocalShop
-npm install
 npx expo login
-eas init   # creates real project ID — update app.json extra.eas.projectId
-eas build --platform ios --profile preview
+eas init   # updates project ID in app.json
+eas build --platform ios --profile development
 ```
 
-Update `eas.json` with your Apple ID and App Store Connect app ID before submit.
+### 5. Stripe webhooks (production)
 
-### 6. Admin panel
+Endpoint: `https://YOUR-API/api/webhooks/stripe`  
+Events: `payment_intent.succeeded`, `payment_intent.payment_failed`
+
+### 6. App Store submit
+
+Update `eas.json` with Apple ID and App Store Connect app ID, then:
 
 ```bash
-cd admin
-npm install
-cp .env.example .env.local   # create with NEXT_PUBLIC_API_URL
+eas build --platform ios --profile production
+eas submit --platform ios
+```
+
+### 7. Admin panel
+
+```bash
+cd admin && npm install
+# .env.local: NEXT_PUBLIC_API_URL=http://localhost:3001/api
 npm run dev
 ```
 
-Open http://localhost:3002 and sign in with the **admin** user you created.
-
-### 7. Legal pages (App Store requirement)
-
-Host real pages and set URLs in mobile `.env`:
-
-- Privacy policy  
-- Terms of service  
-- Support email  
-
-Apple will reject the app without working privacy policy + account deletion (deletion is implemented in Profile).
-
-### 8. Privacy policy hosting
-
-Until you have a marketing site, use Notion/Google Doc public URL or a simple Vercel page — then set `EXPO_PUBLIC_PRIVACY_URL` and `EXPO_PUBLIC_TERMS_URL`.
-
-## Local dev quick start
+## Local dev (three terminals)
 
 ```bash
-# Terminal 1 — API
-cd backend && npm install && npm run dev
-
-# Terminal 2 — mobile
-cd LocalShop && npm install && npx expo start
-
-# Terminal 3 — admin (optional)
-cd admin && npm install && npm run dev
+cd backend && npm run dev
+cd LocalShop && npx expo start --localhost
+cd admin && npm run dev
 ```
 
-Register a customer in the app, register a shop owner, create a shop, add products, checkout (with `STRIPE_SKIP_PAYMENTS=true` orders auto-complete).
+## Still manual / post-v1
 
-## Still TODO after this PR (not automated)
-
-- [ ] Native Stripe Payment Sheet in app (needs dev build + `@stripe/stripe-react-native`)
+- [ ] Production deploy (API + DB + env secrets)
+- [ ] Host legal pages on a public HTTPS URL
+- [ ] App Store screenshots and metadata
 - [ ] Push notifications
-- [ ] Full admin: user ban, dispute resolution UI, Connect payout approvals
 - [ ] Merchant web portal (replace legacy `shop-dashboard/`)
-- [ ] App Store screenshots, metadata, TestFlight beta
-- [ ] Automated E2E tests (Maestro)
-- [ ] Production deploy scripts / CI
+- [ ] Full admin: disputes, payout approvals
+- [ ] Expand Maestro E2E with test user credentials
 
-## When to ping for help
+## When to ask for help
 
-Message when you have: Stripe keys, Expo project ID, API production URL, and Apple Developer account — we can wire TestFlight and final payment testing.
+When you have: Stripe keys, Expo project ID, production API URL, and Apple Developer account — wire TestFlight and live payment testing.

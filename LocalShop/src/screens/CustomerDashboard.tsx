@@ -60,9 +60,15 @@ export const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ navigation
     navigation.navigate('ShopDetail', { shop });
   };
 
-  const handleRemoveFavorite = (shopId: string | number) => {
-    // TODO: Implement remove from favorites
-    console.log('Remove from favorites:', shopId);
+  const handleRemoveFavorite = async (shopId: string | number) => {
+    try {
+      await apiService.removeFromFavorites(String(shopId));
+      setFavorites((prev) =>
+        prev.filter((s) => String(s.id ?? s._id) !== String(shopId))
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Could not remove favorite. Please try again.');
+    }
   };
 
   const getStatusColor = (status: string) => {

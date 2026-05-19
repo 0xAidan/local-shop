@@ -5,13 +5,13 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "scheme": "localshop",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#09090B"
     },
     "ios": {
       "supportsTablet": true,
@@ -51,7 +51,8 @@
           "photosPermission": "LocalShop accesses your photos so you can add product images.",
           "cameraPermission": "LocalShop uses your camera to photograph products."
         }
-      ]
+      ],
+      "@stripe/stripe-react-native"
     ],
     "extra": {
       "eas": {

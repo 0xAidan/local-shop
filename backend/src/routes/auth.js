@@ -17,6 +17,12 @@ const generateToken = (userId) => {
 
 // Register new user
 router.post('/register',
+  (req, res, next) => {
+    if (req.body.phone !== undefined && String(req.body.phone).trim() === '') {
+      delete req.body.phone;
+    }
+    next();
+  },
   [
     body('username')
       .trim()
@@ -40,10 +46,10 @@ router.post('/register',
       .isLength({ min: 1, max: 50 })
       .withMessage('Last name must be between 1 and 50 characters'),
     body('phone')
-      .optional()
+      .optional({ values: 'falsy' })
       .trim()
       .matches(/^[\+]?[1-9][\d]{0,15}$/)
-      .withMessage('Please provide a valid phone number'),
+      .withMessage('Please provide a valid phone number (e.g. +1234567890), or leave blank'),
     body('role')
       .optional()
       .isIn(['customer', 'shop_owner'])
@@ -251,10 +257,10 @@ router.put('/me',
       .isLength({ min: 1, max: 50 })
       .withMessage('Last name must be between 1 and 50 characters'),
     body('phone')
-      .optional()
+      .optional({ values: 'falsy' })
       .trim()
       .matches(/^[\+]?[1-9][\d]{0,15}$/)
-      .withMessage('Please provide a valid phone number'),
+      .withMessage('Please provide a valid phone number (e.g. +1234567890), or leave blank'),
     body('location')
       .optional()
       .isObject()

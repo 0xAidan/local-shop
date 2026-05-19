@@ -16,6 +16,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { ScreenWrapper } from '../components/ScreenWrapper';
 import { apiService } from '../services/api';
+import { isStripeNativeAvailable, presentStripePaymentSheet } from '../services/stripePayments';
 import * as Haptics from 'expo-haptics';
 
 interface CheckoutScreenProps {
@@ -128,29 +129,40 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({ navigation }) =>
         const orderId = order._id || order.id;
         const paymentResult = await apiService.createPaymentIntent(String(orderId));
 
-        if (!paymentResult.data.devBypass && !paymentResult.data.clientSecret) {
+        if (paymentResult.data.devBypass) {
+          createdOrders.push(order);
+          continue;
+        }
+
+        const clientSecret = paymentResult.data.clientSecret;
+        if (!clientSecret) {
           throw new Error('Payment could not be started. Check Stripe configuration.');
+        }
+
+        if (!isStripeNativeAvailable()) {
+          throw new Error(
+            'Card payments need a Local Shop development build. For Expo Go testing, set STRIPE_SKIP_PAYMENTS=true on the API.'
+          );
+        }
+
+        const payment = await presentStripePaymentSheet(clientSecret);
+        if (payment.canceled) {
+          throw new Error('Payment was canceled');
+        }
+        if (!payment.success) {
+          throw new Error(payment.error || 'Payment failed');
         }
 
         createdOrders.push(order);
       }
 
       clearCart();
-      
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
-      Alert.alert(
-        'Order Placed Successfully!',
-        `Your ${createdOrders.length} order${createdOrders.length > 1 ? 's have' : ' has'} been confirmed. Estimated delivery: ${selectedDelivery?.estimatedTime}`,
-        [
-          {
-            text: 'Continue Shopping',
-            onPress: () => {
-              navigation.navigate('CustomerTabs', { screen: 'Home' });
-            },
-          },
-        ]
-      );
+
+      navigation.replace('OrderConfirmation', {
+        orderCount: createdOrders.length,
+        estimatedTime: selectedDelivery?.estimatedTime,
+      });
     } catch (error) {
       console.error('Order creation error:', error);
       Alert.alert('Order Failed', 'There was an error processing your order. Please try again.');

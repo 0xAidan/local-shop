@@ -189,9 +189,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
           <View style={styles.headerActions}>
-            {/* Role Switcher - Development Mode */}
-            {/* TODO: Remove this when authentication is re-enabled */}
-            <RoleSwitcher />
             {isEditing ? (
               <>
                 <TouchableOpacity
@@ -358,6 +355,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
               })}
             />
           </ProfileSection>
+
+          <RoleSwitcher />
 
           {/* Account Actions */}
           <ProfileSection title="Account">

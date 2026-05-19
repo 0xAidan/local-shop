@@ -204,13 +204,15 @@ export const LoginScreen: React.FC = () => {
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity
-                style={styles.testButton}
-                onPress={handleTestConnection}
-                disabled={isLoading}
-              >
-                <Text style={styles.testButtonText}>Test API connection</Text>
-              </TouchableOpacity>
+              {__DEV__ && (
+                <TouchableOpacity
+                  style={styles.testButton}
+                  onPress={handleTestConnection}
+                  disabled={isLoading}
+                >
+                  <Text style={styles.testButtonText}>Test API connection</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </ScrollView>

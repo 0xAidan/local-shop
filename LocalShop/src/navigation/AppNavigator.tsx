@@ -20,7 +20,9 @@ import { CustomerDashboard } from '../screens/CustomerDashboard';
 import { MapScreen } from '../screens/MapScreen';
 import { CartScreen } from '../screens/CartScreen';
 import { CheckoutScreen } from '../screens/CheckoutScreen';
+import { OrderConfirmationScreen } from '../screens/OrderConfirmationScreen';
 import { OrderManagementScreen } from '../screens/OrderManagementScreen';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -37,6 +39,7 @@ export type RootStackParamList = {
   MapScreen: undefined;
   Cart: undefined;
   Checkout: undefined;
+  OrderConfirmation: { orderCount: number; estimatedTime?: string };
   OrderManagement: { shop: any };
   ShopOwnerTabs: undefined;
   CustomerTabs: undefined;
@@ -286,7 +289,7 @@ export const AppNavigator: React.FC = () => {
   const { user, isAuthenticated, isLoading, currentViewMode } = useAuth();
 
   if (isLoading) {
-    return null; // You can add a loading screen here
+    return <LoadingSpinner message="Loading" fullScreen />;
   }
 
   return (
@@ -329,6 +332,7 @@ export const AppNavigator: React.FC = () => {
             <Stack.Screen name="MapScreen" component={MapScreen} />
             <Stack.Screen name="Cart" component={CartScreen} />
             <Stack.Screen name="Checkout" component={CheckoutScreen} />
+            <Stack.Screen name="OrderConfirmation" component={OrderConfirmationScreen} />
           </>
         )}
       </Stack.Navigator>
